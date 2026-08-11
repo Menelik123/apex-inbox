@@ -1,54 +1,21 @@
-import { UserRole } from "@prisma/client";
-
 import { SidebarNavItem } from "types";
 
 export const sidebarLinks: SidebarNavItem[] = [
   {
-    title: "MENU",
+    title: "INBOX",
     items: [
-      {
-        href: "/admin",
-        icon: "laptop",
-        title: "Admin Panel",
-        authorizeOnly: UserRole.ADMIN,
-      },
-      { href: "/dashboard", icon: "dashboard", title: "Dashboard" },
-      {
-        href: "/dashboard/billing",
-        icon: "billing",
-        title: "Billing",
-        authorizeOnly: UserRole.USER,
-      },
-      { href: "/dashboard/charts", icon: "lineChart", title: "Charts" },
-      {
-        href: "/admin/orders",
-        icon: "package",
-        title: "Orders",
-        badge: 2,
-        authorizeOnly: UserRole.ADMIN,
-      },
-      {
-        href: "#/dashboard/posts",
-        icon: "post",
-        title: "User Posts",
-        authorizeOnly: UserRole.USER,
-        disabled: true,
-      },
+      { href: "/dashboard", icon: "dashboard", title: "All Emails" },
+      { href: "/dashboard?category=hot-leads", icon: "arrowUpRight", title: "Hot Leads" },
+      { href: "/dashboard?category=needs-response", icon: "messages", title: "Needs Response" },
+      { href: "/dashboard?category=client-followups", icon: "user", title: "Client Follow-Ups" },
+      { href: "/dashboard?category=admin", icon: "billing", title: "Admin & Logistics" },
+      { href: "/dashboard?category=noise", icon: "trash", title: "Noise" },
     ],
   },
   {
-    title: "OPTIONS",
+    title: "ACCOUNT",
     items: [
       { href: "/dashboard/settings", icon: "settings", title: "Settings" },
-      { href: "/", icon: "home", title: "Homepage" },
-      { href: "/docs", icon: "bookOpen", title: "Documentation" },
-      {
-        href: "#",
-        icon: "messages",
-        title: "Support",
-        authorizeOnly: UserRole.USER,
-        disabled: true,
-      },
     ],
   },
 ];

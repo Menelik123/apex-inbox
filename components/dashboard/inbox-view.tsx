@@ -5,15 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const CATEGORIES = [
-  { key: "all", label: "All Emails" },
-  { key: "hot-leads", label: "Hot Leads" },
-  { key: "needs-response", label: "Needs Response" },
-  { key: "client-followups", label: "Client Follow-Ups" },
-  { key: "admin", label: "Admin & Logistics" },
-  { key: "noise", label: "Noise" },
-] as const;
-
 const CATEGORY_STYLES: Record<string, string> = {
   "hot-leads": "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   "needs-response": "bg-amber-500/15 text-amber-400 border-amber-500/30",
@@ -27,6 +18,15 @@ const CATEGORY_LABELS: Record<string, string> = {
   "needs-response": "Needs Response",
   "client-followups": "Client Follow-Up",
   "admin": "Admin",
+  "noise": "Noise",
+};
+
+const CATEGORY_DISPLAY: Record<string, string> = {
+  "all": "All Emails",
+  "hot-leads": "Hot Leads",
+  "needs-response": "Needs Response",
+  "client-followups": "Client Follow-Ups",
+  "admin": "Admin & Logistics",
   "noise": "Noise",
 };
 
@@ -126,10 +126,10 @@ const SAMPLE_EMAILS = [
 
 interface InboxViewProps {
   user: any;
+  activeCategory: string;
 }
 
-export function InboxView({ user }: InboxViewProps) {
-  const [activeCategory, setActiveCategory] = useState("all");
+export function InboxView({ user, activeCategory }: InboxViewProps) {
   const [selectedEmail, setSelectedEmail] = useState<typeof SAMPLE_EMAILS[0] | null>(null);
   const [agentQuery, setAgentQuery] = useState("");
 
@@ -137,94 +137,43 @@ export function InboxView({ user }: InboxViewProps) {
     ? SAMPLE_EMAILS
     : SAMPLE_EMAILS.filter((e) => e.category === activeCategory);
 
-  const counts = CATEGORIES.reduce((acc, cat) => {
-    acc[cat.key] = cat.key === "all"
-      ? SAMPLE_EMAILS.length
-      : SAMPLE_EMAILS.filter((e) => e.category === cat.key).length;
-    return acc;
-  }, {} as Record<string, number>);
-
   const hotCount = SAMPLE_EMAILS.filter((e) => e.category === "hot-leads").length;
-  const needsCount = SAMPLE_EMAILS.filter((e) => !e.read).length;
+  const unreadCount = SAMPLE_EMAILS.filter((e) => !e.read).length;
 
   return (
     <div className="flex h-[calc(100vh-68px)] w-full overflow-hidden rounded-lg border bg-background">
 
-      {/* Category sidebar */}
-      <div className="flex w-48 shrink-0 flex-col border-r bg-muted/30">
-        {/* Today summary */}
-        <div className="border-b p-3 space-y-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Today</p>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Hot leads</span>
-            <span className="font-semibold text-emerald-400">{hotCount}</span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Need reply</span>
-            <span className="font-semibold text-amber-400">{needsCount}</span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Est. pipeline</span>
-            <span className="font-semibold text-primary">$18K+</span>
-          </div>
-        </div>
-
-        {/* Categories */}
-        <div className="border-b px-3 pt-3 pb-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Categories</p>
-        </div>
-        <nav className="flex flex-col gap-0.5 p-2 flex-1">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.key}
-              onClick={() => { setActiveCategory(cat.key); setSelectedEmail(null); }}
-              className={cn(
-                "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors w-full",
-                activeCategory === cat.key
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
-              )}
-            >
-              <span className="truncate">{cat.label}</span>
-              <span className={cn(
-                "ml-2 flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-semibold",
-                activeCategory === cat.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
-                {counts[cat.key]}
-              </span>
-            </button>
-          ))}
-        </nav>
-
-        {/* 7AM Digest */}
-        <div className="border-t p-3">
-          <div className="rounded-md bg-muted p-2.5 text-xs">
-            <div className="flex items-center justify-between">
-              <p className="font-semibold text-foreground">7AM Digest</p>
-              <span className="text-[10px] text-emerald-400">Active</span>
-            </div>
-            <p className="mt-0.5 text-muted-foreground">Daily priority briefing</p>
-            <p className="mt-1 text-[10px] text-muted-foreground">Last sent: Today 7:00 AM</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Email list */}
+      {/* Email list — expands full width when no email selected */}
       <div className={cn(
-        "flex min-w-0 flex-col border-r",
-        selectedEmail ? "w-72 shrink-0" : "flex-1"
+        "flex min-w-0 flex-col border-r transition-all duration-200",
+        selectedEmail ? "w-80 shrink-0" : "flex-1"
       )}>
-        {/* List header */}
-        <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
-          <div>
-            <h2 className="text-sm font-semibold">
-              {CATEGORIES.find((c) => c.key === activeCategory)?.label}
+        {/* Header */}
+        <div className="flex shrink-0 flex-col gap-2 border-b px-5 py-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">
+              {CATEGORY_DISPLAY[activeCategory] ?? "All Emails"}
             </h2>
-            <p className="text-xs text-muted-foreground">{filtered.length} emails · Demo data</p>
+            <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-400/30 bg-amber-400/10">
+              Demo data — connect email to go live
+            </Badge>
           </div>
-          <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-400/30 bg-amber-400/10">
-            Connect email to go live
-          </Badge>
+
+          {/* Today summary — only show on all emails view */}
+          {activeCategory === "all" && (
+            <div className="flex gap-4 text-xs">
+              <span className="text-muted-foreground">
+                Hot leads: <span className="font-semibold text-emerald-400">{hotCount}</span>
+              </span>
+              <span className="text-muted-foreground">
+                Need reply: <span className="font-semibold text-amber-400">{unreadCount}</span>
+              </span>
+              <span className="text-muted-foreground">
+                Est. pipeline: <span className="font-semibold text-primary">$18K+</span>
+              </span>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">{filtered.length} emails</p>
         </div>
 
         {/* Email rows */}
@@ -239,27 +188,29 @@ export function InboxView({ user }: InboxViewProps) {
                 key={email.id}
                 onClick={() => setSelectedEmail(email)}
                 className={cn(
-                  "w-full border-b px-4 py-3 text-left transition-colors hover:bg-muted/50",
+                  "w-full border-b px-5 py-3.5 text-left transition-colors hover:bg-muted/50",
                   selectedEmail?.id === email.id && "bg-muted",
                   !email.read && "border-l-2 border-l-primary"
                 )}
               >
-                <div className="flex min-w-0 items-start gap-2">
+                <div className="flex min-w-0 items-start gap-3">
                   <div className="min-w-0 flex-1 overflow-hidden">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <p className={cn("truncate text-sm", !email.read ? "font-semibold" : "font-medium")}>
                         {email.from}
                       </p>
-                      {!email.read && <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
+                      {!email.read && (
+                        <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-label="Unread" />
+                      )}
                     </div>
-                    <p className="truncate text-xs font-medium text-foreground/80">{email.subject}</p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{email.preview}</p>
+                    <p className="mt-0.5 truncate text-xs font-medium text-foreground/80">{email.subject}</p>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{email.preview}</p>
                   </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
                     <span className="whitespace-nowrap text-xs text-muted-foreground">{email.time}</span>
                     <Badge
                       variant="outline"
-                      className={cn("whitespace-nowrap text-[10px] px-1.5 py-0", CATEGORY_STYLES[email.category])}
+                      className={cn("whitespace-nowrap px-1.5 py-0 text-[10px]", CATEGORY_STYLES[email.category])}
                     >
                       {CATEGORY_LABELS[email.category]}
                     </Badge>
@@ -271,20 +222,21 @@ export function InboxView({ user }: InboxViewProps) {
         </div>
       </div>
 
-      {/* Email detail panel */}
+      {/* AI detail panel — only shown when email is selected */}
       {selectedEmail && (
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex shrink-0 items-start justify-between border-b px-6 py-3">
+          <div className="flex shrink-0 items-start justify-between border-b px-6 py-4">
             <div className="min-w-0 flex-1 pr-4">
-              <h3 className="truncate font-semibold">{selectedEmail.subject}</h3>
-              <p className="truncate text-xs text-muted-foreground">
+              <h3 className="text-base font-semibold leading-tight">{selectedEmail.subject}</h3>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
                 From: {selectedEmail.from} · {selectedEmail.email}
               </p>
             </div>
             <button
               onClick={() => setSelectedEmail(null)}
               className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+              aria-label="Close"
             >
               ✕
             </button>
@@ -292,31 +244,28 @@ export function InboxView({ user }: InboxViewProps) {
 
           <div className="flex-1 overflow-y-auto">
             {/* AI Intelligence Panel */}
-            <div className="mx-6 mt-4 rounded-lg border bg-muted/40 p-4">
+            <div className="mx-6 mt-5 rounded-lg border bg-muted/40 p-5">
               <div className="mb-3 flex items-center gap-2">
                 <div className="size-2 shrink-0 rounded-full bg-primary" />
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">AI Analysis</p>
-                <Badge variant="outline" className={cn("ml-auto shrink-0 text-[10px] px-1.5", CATEGORY_STYLES[selectedEmail.category])}>
+                <Badge variant="outline" className={cn("ml-auto shrink-0 px-1.5 text-[10px]", CATEGORY_STYLES[selectedEmail.category])}>
                   {CATEGORY_LABELS[selectedEmail.category]}
                 </Badge>
               </div>
 
               <p className="text-sm text-foreground">{selectedEmail.summary}</p>
 
-              {/* Why classified */}
-              <div className="mt-3 rounded-md bg-background/60 px-3 py-2">
+              <div className="mt-3 rounded-md bg-background/60 px-3 py-2.5">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Why this category</p>
                 <p className="mt-1 text-xs text-muted-foreground">{selectedEmail.why}</p>
               </div>
 
-              {/* Suggested action */}
               <div className="mt-3 border-t pt-3">
                 <p className="text-xs font-medium text-muted-foreground">Suggested action</p>
                 <p className="mt-0.5 text-sm font-semibold text-primary">{selectedEmail.action}</p>
               </div>
 
-              {/* Action buttons */}
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
                 <Button size="sm" className="h-7 text-xs">Draft Reply</Button>
                 <Button size="sm" variant="outline" className="h-7 text-xs">Schedule Follow-Up</Button>
                 <Button size="sm" variant="outline" className="h-7 text-xs">Create Task</Button>
@@ -325,20 +274,20 @@ export function InboxView({ user }: InboxViewProps) {
             </div>
 
             {/* Email body */}
-            <div className="px-6 py-4">
+            <div className="px-6 py-5">
               <p className="text-sm leading-relaxed text-muted-foreground">{selectedEmail.preview}</p>
             </div>
           </div>
 
           {/* AI Agent prompt */}
           <div className="shrink-0 border-t px-6 py-3">
-            <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2.5">
               <input
                 type="text"
                 placeholder="Ask AI about this email..."
                 value={agentQuery}
                 onChange={(e) => setAgentQuery(e.target.value)}
-                className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none"
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
               />
               <div className="size-2 shrink-0 rounded-full bg-emerald-400" title="Agent online" />
             </div>
@@ -346,11 +295,9 @@ export function InboxView({ user }: InboxViewProps) {
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty state when no email selected — hidden but reserves no space */}
       {!selectedEmail && (
-        <div className="hidden flex-1 items-center justify-center text-sm text-muted-foreground md:flex">
-          Select an email to see AI analysis
-        </div>
+        <div className="hidden" />
       )}
     </div>
   );

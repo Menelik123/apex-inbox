@@ -7,7 +7,11 @@ export const metadata = constructMetadata({
   description: "Your AI-powered email command center.",
 });
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { category?: string };
+}) {
   const user = await getCurrentUser();
-  return <InboxView user={user} />;
+  return <InboxView user={user} activeCategory={searchParams.category || "all"} />;
 }

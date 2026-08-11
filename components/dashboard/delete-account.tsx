@@ -1,56 +1,44 @@
 "use client";
 
-import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { SectionColumns } from "@/components/dashboard/section-columns";
-import { useDeleteAccountModal } from "@/components/modals/delete-account-modal";
 import { Icons } from "@/components/shared/icons";
 
 export function DeleteAccountSection() {
-  const { setShowDeleteAccountModal, DeleteAccountModal } =
-    useDeleteAccountModal();
-
-  const userPaidPlan = true;
-
   return (
-    <>
-      <DeleteAccountModal />
-      <SectionColumns
-        title="Delete Account"
-        description="This is a danger zone - Be careful !"
-      >
-        <div className="flex flex-col gap-4 rounded-xl border border-red-400 p-4 dark:border-red-900">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[15px] font-medium">Are you sure ?</span>
+    <SectionColumns
+      title="Danger Zone"
+      description="Destructive actions. These cannot be undone."
+    >
+      <div className="flex flex-col gap-6 rounded-xl border border-red-400/40 p-5 dark:border-red-900/60">
 
-              {userPaidPlan ? (
-                <div className="flex items-center gap-1 rounded-md bg-red-600/10 p-1 pr-2 text-xs font-medium text-red-600 dark:bg-red-500/10 dark:text-red-500">
-                  <div className="m-0.5 rounded-full bg-red-600 p-[3px]">
-                    <Icons.close size={10} className="text-background" />
-                  </div>
-                  Active Subscription
-                </div>
-              ) : null}
-            </div>
-            <div className="text-balance text-sm text-muted-foreground">
-              Permanently delete your {siteConfig.name} account
-              {userPaidPlan ? " and your subscription" : ""}. This action cannot
-              be undone - please proceed with caution.
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="submit"
-              variant="destructive"
-              onClick={() => setShowDeleteAccountModal(true)}
-            >
-              <Icons.trash className="mr-2 size-4" />
-              <span>Delete Account</span>
-            </Button>
-          </div>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium">Disconnect Mailbox</p>
+          <p className="text-sm text-muted-foreground">
+            Remove your connected email account from Apex Inbox. Your emails will no longer be processed. You can reconnect at any time.
+          </p>
+          <Button variant="outline" size="sm" className="mt-1 w-fit border-red-400/40 text-red-500 hover:bg-red-500/10">
+            Disconnect Mailbox
+          </Button>
         </div>
-      </SectionColumns>
-    </>
+
+        <div className="border-t pt-4 flex flex-col gap-2">
+          <p className="text-sm font-medium">Delete Account</p>
+          <p className="text-sm text-muted-foreground">
+            Permanently delete your Apex Inbox account, connected mailbox data, automations, and all settings. This action cannot be undone. You will receive a confirmation email before deletion is finalized.
+          </p>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="mt-1 w-fit"
+            onClick={() => window.confirm("Type DELETE to confirm") }
+          >
+            <Icons.trash className="mr-2 size-4" />
+            Delete Account
+          </Button>
+        </div>
+
+      </div>
+    </SectionColumns>
   );
 }

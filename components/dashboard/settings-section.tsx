@@ -149,7 +149,7 @@ export function SettingsSection() {
         <div className="flex flex-col gap-4">
           <div>
             <p className="text-sm font-medium mb-1">Default Follow-Up Window</p>
-            <p className="text-xs text-muted-foreground mb-2">Remind you if a hot lead hasn't replied within this window.</p>
+            <p className="text-xs text-muted-foreground mb-2">Remind you if a hot lead has not replied within this window.</p>
             <div className="flex gap-2">
               {["24 hours", "2 days", "3 days", "5 days"].map((t) => (
                 <button

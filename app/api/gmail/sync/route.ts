@@ -4,7 +4,9 @@ import { prisma } from "@/lib/db";
 import { getGmailClient, parseEmailBody, extractHeader } from "@/lib/gmail";
 import { categorizeEmail } from "@/lib/ai-categorize";
 
-const MAX_EMAILS_PER_SYNC = 50;
+export const maxDuration = 60;
+
+const MAX_EMAILS_PER_SYNC = 10;
 
 export async function POST(req: NextRequest) {
   const session = await auth();

@@ -57,6 +57,7 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
   const [hasAccounts, setHasAccounts] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [showDraft, setShowDraft] = useState(false);
   const [agentQuery, setAgentQuery] = useState("");
@@ -84,11 +85,27 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
 
   const handleSync = async () => {
     setSyncing(true);
+    setSyncMessage("");
     try {
-      await fetch("/api/gmail/sync", { method: "POST" });
+      const res = await fetch("/api/gmail/sync", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setSyncMessage(data.error || "Sync failed.");
+      } else {
+        const total = (data.results as any[]).reduce((sum: number, r: any) => sum + (r.synced ?? 0), 0);
+        const errors = (data.results as any[]).filter((r: any) => r.error);
+        if (errors.length > 0) {
+          setSyncMessage(`Error: ${errors[0].error}`);
+        } else {
+          setSyncMessage(total > 0 ? `Synced ${total} new email${total === 1 ? "" : "s"}.` : "Already up to date.");
+        }
+      }
       await fetchEmails();
+    } catch (err) {
+      setSyncMessage("Sync timed out or failed. Try again.");
     } finally {
       setSyncing(false);
+      setTimeout(() => setSyncMessage(""), 5000);
     }
   };
 
@@ -167,7 +184,15 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
           )}
 
           {!loading && (
-            <p className="text-xs text-muted-foreground">{emails.length} emails</p>
+            <p className="text-xs text-muted-foreground">
+              {syncMessage ? (
+                <span className={syncMessage.startsWith("Error") ? "text-red-400" : "text-emerald-400"}>
+                  {syncMessage}
+                </span>
+              ) : (
+                `${emails.length} emails`
+              )}
+            </p>
           )}
         </div>
 

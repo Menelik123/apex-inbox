@@ -6,7 +6,7 @@ import { categorizeEmail } from "@/lib/ai-categorize";
 
 export const maxDuration = 60;
 
-const MAX_EMAILS_PER_SYNC = 10;
+const MAX_EMAILS_PER_SYNC = 25;
 
 export async function POST(req: NextRequest) {
   const session = await auth();

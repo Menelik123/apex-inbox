@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DraftModal } from "@/components/dashboard/draft-modal";
+import { FollowUpModal } from "@/components/dashboard/follow-up-modal";
 
 const CATEGORY_STYLES: Record<string, string> = {
   "hot-leads": "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -72,6 +73,7 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
   const [archiveMsg, setArchiveMsg] = useState("");
   const [editingCategory, setEditingCategory] = useState(false);
   const [savingCategory, setSavingCategory] = useState(false);
+  const [showFollowUp, setShowFollowUp] = useState(false);
   const [updateBanner, setUpdateBanner] = useState(false);
   const buildIdRef = useRef<string | null>(null);
 
@@ -114,28 +116,47 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
   const handleSync = async () => {
     setSyncing(true);
     setSyncMessage("");
+    let totalSynced = 0;
+    let batch = 0;
+
     try {
-      const res = await fetch("/api/gmail/sync", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        setSyncMessage(data.error || "Sync failed.");
-      } else {
-        const total = (data.results as any[]).reduce(
-          (sum: number, r: any) => sum + (r.synced ?? 0),
-          0,
-        );
+      while (true) {
+        batch++;
+        if (batch > 1) setSyncMessage(`Syncing batch ${batch}...`);
+
+        const res = await fetch("/api/gmail/sync", { method: "POST" });
+        const data = await res.json();
+
+        if (!res.ok) {
+          setSyncMessage(data.error || "Sync failed.");
+          break;
+        }
+
         const errors = (data.results as any[]).filter((r: any) => r.error);
         if (errors.length > 0) {
           setSyncMessage(`Error: ${errors[0].error}`);
-        } else {
-          setSyncMessage(
-            total > 0
-              ? `Synced ${total} new email${total === 1 ? "" : "s"}. Sync again to get more.`
-              : "Already up to date.",
-          );
+          break;
         }
+
+        const batchSynced = (data.results as any[]).reduce(
+          (sum: number, r: any) => sum + (r.synced ?? 0),
+          0,
+        );
+        totalSynced += batchSynced;
+
+        const hasMore = (data.results as any[]).some((r: any) => r.hasMore);
+
+        if (!hasMore) break;
+        // Small pause between batches to avoid rate limits
+        await new Promise((r) => setTimeout(r, 1000));
       }
+
       await fetchEmails();
+      setSyncMessage(
+        totalSynced > 0
+          ? `Synced ${totalSynced} new email${totalSynced === 1 ? "" : "s"}.`
+          : "Already up to date.",
+      );
     } catch {
       setSyncMessage("Sync timed out or failed. Try again.");
     } finally {
@@ -175,6 +196,7 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
     setComingSoonMsg("");
     setArchiveMsg("");
     setEditingCategory(false);
+    setShowFollowUp(false);
 
     // Mark as read
     if (!email.read) {
@@ -293,6 +315,16 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
           emailSubject={selectedEmail.subject}
           fromEmail={selectedEmail.email}
           onClose={() => setShowDraft(false)}
+        />
+      )}
+      {showFollowUp && selectedEmail && (
+        <FollowUpModal
+          emailId={selectedEmail.id}
+          fromName={selectedEmail.from}
+          fromEmail={selectedEmail.email}
+          subject={selectedEmail.subject}
+          onClose={() => setShowFollowUp(false)}
+          onSaved={() => setSyncMessage("Follow-up scheduled.")}
         />
       )}
       <div className="flex h-[calc(100vh-68px)] w-full overflow-hidden rounded-lg border bg-background">
@@ -601,7 +633,7 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
                     size="sm"
                     variant="outline"
                     className="h-7 text-xs"
-                    onClick={() => showComingSoon("Schedule Follow-Up")}
+                    onClick={() => setShowFollowUp(true)}
                   >
                     Schedule Follow-Up
                   </Button>

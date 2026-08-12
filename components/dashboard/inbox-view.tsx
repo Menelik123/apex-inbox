@@ -97,7 +97,7 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
         if (errors.length > 0) {
           setSyncMessage(`Error: ${errors[0].error}`);
         } else {
-          setSyncMessage(total > 0 ? `Synced ${total} new email${total === 1 ? "" : "s"}.` : "Already up to date.");
+          setSyncMessage(total > 0 ? `Synced ${total} new email${total === 1 ? "" : "s"}. Sync again to get more.` : "Already up to date.");
         }
       }
       await fetchEmails();

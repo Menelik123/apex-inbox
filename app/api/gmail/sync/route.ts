@@ -6,7 +6,9 @@ import { categorizeEmail } from "@/lib/ai-categorize";
 
 export const maxDuration = 60;
 
-const MAX_EMAILS_PER_SYNC = 25;
+const BATCH_SIZE = 25;        // per page from Gmail
+const MAX_TO_PROCESS = 25;    // AI categorization limit per sync call (keep under timeout)
+const LOOKBACK_DAYS = 30;     // first-sync window
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -30,33 +32,50 @@ export async function POST(req: NextRequest) {
     try {
       const gmail = await getGmailClient(account.accessToken, account.refreshToken);
 
-      // Fetch messages since last sync (or last 7 days if first sync)
       const after = account.lastSyncAt
         ? Math.floor(account.lastSyncAt.getTime() / 1000)
-        : Math.floor((Date.now() - 7 * 24 * 60 * 60 * 1000) / 1000);
+        : Math.floor((Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000) / 1000);
 
-      const listRes = await gmail.users.messages.list({
-        userId: "me",
-        q: `after:${after} in:inbox`,
-        maxResults: MAX_EMAILS_PER_SYNC,
-      });
+      // Collect all message IDs across pages first
+      const allMessageIds: string[] = [];
+      let pageToken: string | undefined = undefined;
 
-      const messages = listRes.data.messages ?? [];
-      let synced = 0;
-      let skipped = 0;
-
-      for (const msg of messages) {
-        if (!msg.id) continue;
-
-        // Skip if already in DB
-        const existing = await prisma.email.findUnique({
-          where: { emailAccountId_messageId: { emailAccountId: account.id, messageId: msg.id } },
+      do {
+        const listRes = await gmail.users.messages.list({
+          userId: "me",
+          q: `after:${after} in:inbox`,
+          maxResults: BATCH_SIZE,
+          ...(pageToken ? { pageToken } : {}),
         });
-        if (existing) { skipped++; continue; }
 
+        const msgs = listRes.data.messages ?? [];
+        for (const m of msgs) {
+          if (m.id) allMessageIds.push(m.id);
+        }
+
+        pageToken = listRes.data.nextPageToken ?? undefined;
+
+        // Stop collecting IDs once we have enough to process this call
+        if (allMessageIds.length >= MAX_TO_PROCESS * 2) break;
+      } while (pageToken);
+
+      // Filter out already-synced messages
+      const existingIds = new Set(
+        (await prisma.email.findMany({
+          where: { emailAccountId: account.id, messageId: { in: allMessageIds } },
+          select: { messageId: true },
+        })).map((e) => e.messageId)
+      );
+
+      const toFetch = allMessageIds.filter((id) => !existingIds.has(id)).slice(0, MAX_TO_PROCESS);
+
+      let synced = 0;
+      const skipped = allMessageIds.length - toFetch.length;
+
+      for (const msgId of toFetch) {
         const full = await gmail.users.messages.get({
           userId: "me",
-          id: msg.id,
+          id: msgId,
           format: "full",
         });
 
@@ -68,7 +87,6 @@ export async function POST(req: NextRequest) {
         const dateStr = extractHeader(headers, "date");
         const receivedAt = dateStr ? new Date(dateStr) : new Date();
 
-        // Parse from name + email
         const fromMatch = fromRaw.match(/^(.*?)\s*<(.+?)>$/) ?? [null, null, fromRaw];
         const fromName = fromMatch[1]?.trim() || null;
         const fromEmail = fromMatch[2]?.trim() || fromRaw;
@@ -76,13 +94,10 @@ export async function POST(req: NextRequest) {
         const { text: bodyText, html: bodyHtml } = parseEmailBody(payload ?? {});
         const snippet = full.data.snippet ?? "";
 
-        // AI categorization
-        const bodySnippet = bodyText || snippet;
         let aiResult;
         try {
-          aiResult = await categorizeEmail(fromRaw, subject, bodySnippet);
-        } catch (aiErr) {
-          console.error("AI categorization failed for message", msg.id, aiErr);
+          aiResult = await categorizeEmail(fromRaw, subject, bodyText || snippet);
+        } catch {
           aiResult = {
             category: "ADMIN" as const,
             summary: snippet,
@@ -92,14 +107,13 @@ export async function POST(req: NextRequest) {
           };
         }
 
-        const labelIds = full.data.labelIds ?? [];
-        const isRead = !labelIds.includes("UNREAD");
+        const isRead = !(full.data.labelIds ?? []).includes("UNREAD");
 
         await prisma.email.create({
           data: {
             emailAccountId: account.id,
-            messageId: msg.id,
-            threadId: full.data.threadId ?? msg.id,
+            messageId: msgId,
+            threadId: full.data.threadId ?? msgId,
             fromName,
             fromEmail,
             subject,
@@ -119,10 +133,14 @@ export async function POST(req: NextRequest) {
         synced++;
       }
 
-      await prisma.emailAccount.update({
-        where: { id: account.id },
-        data: { lastSyncAt: new Date() },
-      });
+      // Only advance lastSyncAt if we've caught up (no more new messages to pull)
+      const hasMore = toFetch.length === MAX_TO_PROCESS && allMessageIds.filter((id) => !existingIds.has(id)).length > MAX_TO_PROCESS;
+      if (!hasMore) {
+        await prisma.emailAccount.update({
+          where: { id: account.id },
+          data: { lastSyncAt: new Date() },
+        });
+      }
 
       results.push({ email: account.email, synced, skipped });
     } catch (err) {

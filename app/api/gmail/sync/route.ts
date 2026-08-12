@@ -6,9 +6,7 @@ import { categorizeEmail } from "@/lib/ai-categorize";
 
 export const maxDuration = 60;
 
-const BATCH_SIZE = 25;        // per page from Gmail
-const MAX_TO_PROCESS = 25;    // AI categorization limit per sync call (keep under timeout)
-const LOOKBACK_DAYS = 30;     // first-sync window
+const MAX_TO_PROCESS = 20; // AI calls per sync run
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -26,51 +24,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No connected email accounts" }, { status: 400 });
   }
 
-  const results: Array<{ email: string; synced?: number; skipped?: number; error?: string }> = [];
+  const results: Array<{ email: string; synced?: number; skipped?: number; hasMore?: boolean; error?: string }> = [];
 
   for (const account of emailAccounts) {
     try {
       const gmail = await getGmailClient(account.accessToken, account.refreshToken);
 
-      const after = account.lastSyncAt
-        ? Math.floor(account.lastSyncAt.getTime() / 1000)
-        : Math.floor((Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000) / 1000);
-
-      // Collect all message IDs across pages first
+      // Collect message IDs from Gmail inbox — no time filter, DB handles dedup
       const allMessageIds: string[] = [];
       let pageToken: string | undefined = undefined;
 
+      // Collect enough IDs to find MAX_TO_PROCESS unseen ones
       do {
         const listRes = await gmail.users.messages.list({
           userId: "me",
-          q: `after:${after} in:inbox`,
-          maxResults: BATCH_SIZE,
+          q: "in:inbox",
+          maxResults: 50,
           ...(pageToken ? { pageToken } : {}),
         });
 
-        const msgs = listRes.data.messages ?? [];
-        for (const m of msgs) {
+        for (const m of listRes.data.messages ?? []) {
           if (m.id) allMessageIds.push(m.id);
         }
 
         pageToken = listRes.data.nextPageToken ?? undefined;
 
-        // Stop collecting IDs once we have enough to process this call
-        if (allMessageIds.length >= MAX_TO_PROCESS * 2) break;
-      } while (pageToken);
+        // Check how many we already have vs how many we've collected
+        if (allMessageIds.length >= 200) break; // safety cap per run
+      } while (pageToken && allMessageIds.length < 100);
 
-      // Filter out already-synced messages
-      const existingIds = new Set(
+      // Bulk check which ones are already in DB
+      const existingSet = new Set(
         (await prisma.email.findMany({
           where: { emailAccountId: account.id, messageId: { in: allMessageIds } },
           select: { messageId: true },
         })).map((e) => e.messageId)
       );
 
-      const toFetch = allMessageIds.filter((id) => !existingIds.has(id)).slice(0, MAX_TO_PROCESS);
+      const toFetch = allMessageIds.filter((id) => !existingSet.has(id)).slice(0, MAX_TO_PROCESS);
+      const hasMore = allMessageIds.filter((id) => !existingSet.has(id)).length > MAX_TO_PROCESS;
 
       let synced = 0;
-      const skipped = allMessageIds.length - toFetch.length;
+      const skipped = existingSet.size;
 
       for (const msgId of toFetch) {
         const full = await gmail.users.messages.get({
@@ -133,16 +128,12 @@ export async function POST(req: NextRequest) {
         synced++;
       }
 
-      // Only advance lastSyncAt if we've caught up (no more new messages to pull)
-      const hasMore = toFetch.length === MAX_TO_PROCESS && allMessageIds.filter((id) => !existingIds.has(id)).length > MAX_TO_PROCESS;
-      if (!hasMore) {
-        await prisma.emailAccount.update({
-          where: { id: account.id },
-          data: { lastSyncAt: new Date() },
-        });
-      }
+      await prisma.emailAccount.update({
+        where: { id: account.id },
+        data: { lastSyncAt: new Date() },
+      });
 
-      results.push({ email: account.email, synced, skipped });
+      results.push({ email: account.email, synced, skipped, hasMore });
     } catch (err) {
       console.error(`Sync failed for account ${account.email}:`, err);
       results.push({ email: account.email, error: String(err) });

@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
               { fromName: { contains: q, mode: "insensitive" } },
               { subject: { contains: q, mode: "insensitive" } },
               { snippet: { contains: q, mode: "insensitive" } },
+              { bodyText: { contains: q, mode: "insensitive" } },
             ],
           }
         : {}),
@@ -79,6 +80,7 @@ export async function GET(req: NextRequest) {
     email: e.fromEmail,
     subject: e.subject,
     preview: decodeEntities(e.snippet || e.bodyText?.slice(0, 200) || ""),
+    body: e.bodyText ? decodeEntities(e.bodyText) : null,
     summary: e.aiSummary || "",
     action: e.aiAction || "Review manually",
     why: e.aiWhy || "",
@@ -92,16 +94,26 @@ export async function GET(req: NextRequest) {
 }
 
 function decodeEntities(str: string): string {
-  return str
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .replace(/[\u200B-\u200D\uFEFF\u00AD]/g, "") // zero-width chars
-    .replace(/\s{3,}/g, "  ") // collapse excessive whitespace
-    .trim();
+  return (
+    str
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&hellip;/g, "...")
+      .replace(/&mdash;/g, "-")
+      .replace(/&ndash;/g, "-")
+      .replace(/&#\d+;/g, "") // remaining numeric entities
+      // Zero-width and invisible Unicode used by newsletter trackers
+      .replace(
+        /[\u034F\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g,
+        "",
+      )
+      .replace(/\s{3,}/g, "  ") // collapse excessive whitespace
+      .trim()
+  );
 }
 
 function formatTime(date: Date): string {

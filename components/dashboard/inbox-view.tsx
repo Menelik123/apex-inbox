@@ -39,6 +39,7 @@ type Email = {
   email: string;
   subject: string;
   preview: string;
+  body: string | null;
   summary: string;
   action: string;
   why: string;
@@ -68,6 +69,9 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
   const [reclassifying, setReclassifying] = useState(false);
   const [reclassifyMsg, setReclassifyMsg] = useState("");
   const [archiving, setArchiving] = useState(false);
+  const [archiveMsg, setArchiveMsg] = useState("");
+  const [editingCategory, setEditingCategory] = useState(false);
+  const [savingCategory, setSavingCategory] = useState(false);
   const [updateBanner, setUpdateBanner] = useState(false);
   const buildIdRef = useRef<string | null>(null);
 
@@ -169,6 +173,8 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
     setAgentAnswer("");
     setShowDraft(false);
     setComingSoonMsg("");
+    setArchiveMsg("");
+    setEditingCategory(false);
 
     // Mark as read
     if (!email.read) {
@@ -183,7 +189,12 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
 
   const handleArchive = async () => {
     if (!selectedEmail || archiving) return;
+    if (
+      !window.confirm("Archive this email? It will be removed from your inbox.")
+    )
+      return;
     setArchiving(true);
+    setArchiveMsg("");
     try {
       const res = await fetch(`/api/emails/${selectedEmail.id}/archive`, {
         method: "POST",
@@ -191,9 +202,43 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
       if (res.ok) {
         setEmails((prev) => prev.filter((e) => e.id !== selectedEmail.id));
         setSelectedEmail(null);
+      } else {
+        setArchiveMsg("Archive failed. Try again.");
+        setTimeout(() => setArchiveMsg(""), 4000);
+      }
+    } catch {
+      setArchiveMsg("Archive failed. Try again.");
+      setTimeout(() => setArchiveMsg(""), 4000);
+    }
+    setArchiving(false);
+  };
+
+  const handleCategoryChange = async (newCategory: string) => {
+    if (!selectedEmail) return;
+    setSavingCategory(true);
+    const DB_MAP: Record<string, string> = {
+      "hot-leads": "HOT_LEAD",
+      "needs-response": "NEEDS_RESPONSE",
+      "client-followups": "CLIENT_FOLLOWUP",
+      admin: "ADMIN",
+      noise: "NOISE",
+    };
+    try {
+      const res = await fetch(`/api/emails/${selectedEmail.id}/category`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: DB_MAP[newCategory] }),
+      });
+      if (res.ok) {
+        const updated = { ...selectedEmail, category: newCategory };
+        setSelectedEmail(updated);
+        setEmails((prev) =>
+          prev.map((e) => (e.id === selectedEmail.id ? updated : e)),
+        );
+        setEditingCategory(false);
       }
     } catch {}
-    setArchiving(false);
+    setSavingCategory(false);
   };
 
   const showComingSoon = (feature: string) => {
@@ -445,15 +490,44 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     AI Analysis
                   </p>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "ml-auto shrink-0 px-1.5 text-[10px]",
-                      CATEGORY_STYLES[selectedEmail.category],
-                    )}
-                  >
-                    {CATEGORY_LABELS[selectedEmail.category]}
-                  </Badge>
+                  {editingCategory ? (
+                    <div className="ml-auto flex items-center gap-1.5">
+                      <select
+                        className="rounded border bg-background px-1.5 py-0.5 text-[10px]"
+                        defaultValue={selectedEmail.category}
+                        disabled={savingCategory}
+                        onChange={(e) => handleCategoryChange(e.target.value)}
+                      >
+                        {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
+                          <option key={k} value={k}>
+                            {v}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => setEditingCategory(false)}
+                        className="text-[10px] text-muted-foreground hover:text-foreground"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="ml-auto flex items-center gap-1.5"
+                      onClick={() => setEditingCategory(true)}
+                      title="Change category"
+                    >
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "shrink-0 px-1.5 text-[10px] hover:opacity-80",
+                          CATEGORY_STYLES[selectedEmail.category],
+                        )}
+                      >
+                        {CATEGORY_LABELS[selectedEmail.category]}
+                      </Badge>
+                    </button>
+                  )}
                 </div>
 
                 {selectedEmail.confidence === 0 ? (
@@ -495,14 +569,31 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
                   </div>
                 )}
 
-                {comingSoonMsg && (
-                  <p className="mt-2 text-xs text-amber-400">{comingSoonMsg}</p>
+                {(comingSoonMsg || archiveMsg) && (
+                  <p
+                    className={cn(
+                      "mt-2 text-xs",
+                      archiveMsg ? "text-red-400" : "text-amber-400",
+                    )}
+                  >
+                    {archiveMsg || comingSoonMsg}
+                  </p>
                 )}
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     className="h-7 text-xs"
                     onClick={() => setShowDraft(true)}
+                    disabled={
+                      selectedEmail.category === "noise" ||
+                      selectedEmail.category === "admin"
+                    }
+                    title={
+                      selectedEmail.category === "noise" ||
+                      selectedEmail.category === "admin"
+                        ? "Draft Reply not available for Admin/Noise emails"
+                        : undefined
+                    }
                   >
                     Draft Reply
                   </Button>
@@ -535,9 +626,14 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
               </div>
 
               {/* Email body */}
-              <div className="px-6 py-5">
+              <div className="border-t px-6 py-5">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Message
+                </p>
                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                  {selectedEmail.preview}
+                  {selectedEmail.body ||
+                    selectedEmail.preview ||
+                    "(No message body available)"}
                 </p>
               </div>
             </div>

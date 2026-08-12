@@ -183,9 +183,9 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
               <p className="text-xs text-muted-foreground">
                 Connect your Gmail account in Settings to start categorizing emails.
               </p>
-              <Button size="sm" variant="outline" className="mt-1 text-xs" asChild>
-                <a href="/dashboard/settings">Go to Settings</a>
-              </Button>
+              <a href="/dashboard/settings" className="mt-1 rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                Go to Settings
+              </a>
             </div>
           ) : emails.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-8 text-center">

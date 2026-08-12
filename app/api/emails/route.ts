@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+
 import { prisma } from "@/lib/db";
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -17,6 +18,7 @@ export async function GET(req: NextRequest) {
   }
 
   const category = req.nextUrl.searchParams.get("category") ?? "all";
+  const q = req.nextUrl.searchParams.get("q") ?? "";
 
   const emailAccounts = await prisma.emailAccount.findMany({
     where: { userId: session.user.id, isActive: true },
@@ -30,13 +32,25 @@ export async function GET(req: NextRequest) {
   const accountIds = emailAccounts.map((a) => a.id);
 
   // Map URL category slug back to DB enum
-  const dbCategory = Object.entries(CATEGORY_MAP).find(([, v]) => v === category)?.[0];
+  const dbCategory = Object.entries(CATEGORY_MAP).find(
+    ([, v]) => v === category,
+  )?.[0];
 
   const emails = await prisma.email.findMany({
     where: {
       emailAccountId: { in: accountIds },
       isArchived: false,
       ...(dbCategory ? { category: dbCategory as any } : {}),
+      ...(q
+        ? {
+            OR: [
+              { fromEmail: { contains: q, mode: "insensitive" } },
+              { fromName: { contains: q, mode: "insensitive" } },
+              { subject: { contains: q, mode: "insensitive" } },
+              { snippet: { contains: q, mode: "insensitive" } },
+            ],
+          }
+        : {}),
     },
     orderBy: { receivedAt: "desc" },
     take: 100,
@@ -64,7 +78,7 @@ export async function GET(req: NextRequest) {
     from: e.fromName || e.fromEmail,
     email: e.fromEmail,
     subject: e.subject,
-    preview: e.snippet || e.bodyText?.slice(0, 200) || "",
+    preview: decodeEntities(e.snippet || e.bodyText?.slice(0, 200) || ""),
     summary: e.aiSummary || "",
     action: e.aiAction || "Review manually",
     why: e.aiWhy || "",
@@ -77,13 +91,29 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ emails: formatted, hasAccounts: true });
 }
 
+function decodeEntities(str: string): string {
+  return str
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .replace(/[\u200B-\u200D\uFEFF\u00AD]/g, "") // zero-width chars
+    .replace(/\s{3,}/g, "  ") // collapse excessive whitespace
+    .trim();
+}
+
 function formatTime(date: Date): string {
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
   if (days === 0) {
-    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
   }
   if (days === 1) return "Yesterday";
   if (days < 7) return date.toLocaleDateString("en-US", { weekday: "short" });

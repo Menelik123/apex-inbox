@@ -62,6 +62,7 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
   const [agentQuery, setAgentQuery] = useState("");
   const [agentAnswer, setAgentAnswer] = useState("");
   const [agentLoading, setAgentLoading] = useState(false);
+  const [comingSoonMsg, setComingSoonMsg] = useState("");
 
   const fetchEmails = useCallback(async () => {
     setLoading(true);
@@ -89,6 +90,11 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
     } finally {
       setSyncing(false);
     }
+  };
+
+  const showComingSoon = (feature: string) => {
+    setComingSoonMsg(`${feature} is coming in the next update.`);
+    setTimeout(() => setComingSoonMsg(""), 3000);
   };
 
   const handleAskAI = async () => {
@@ -190,7 +196,7 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
             emails.map((email) => (
               <button
                 key={email.id}
-                onClick={() => { setSelectedEmail(email); setAgentAnswer(""); setShowDraft(false); }}
+                onClick={() => { setSelectedEmail(email); setAgentAnswer(""); setShowDraft(false); setComingSoonMsg(""); }}
                 className={cn(
                   "w-full border-b px-5 py-3.5 text-left transition-colors hover:bg-muted/50",
                   selectedEmail?.id === email.id && "bg-muted",
@@ -273,17 +279,20 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
                 <p className="mt-0.5 text-sm font-semibold text-primary">{selectedEmail.action}</p>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
+              {comingSoonMsg && (
+                <p className="mt-2 text-xs text-amber-400">{comingSoonMsg}</p>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
                 <Button size="sm" className="h-7 text-xs" onClick={() => setShowDraft(true)}>
                   Draft Reply
                 </Button>
-                <Button size="sm" variant="outline" className="h-7 text-xs" disabled title="Coming soon">
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => showComingSoon("Schedule Follow-Up")}>
                   Schedule Follow-Up
                 </Button>
-                <Button size="sm" variant="outline" className="h-7 text-xs" disabled title="Coming soon">
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => showComingSoon("Create Task")}>
                   Create Task
                 </Button>
-                <Button size="sm" variant="outline" className="h-7 text-xs" disabled title="Coming soon">
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => showComingSoon("Archive")}>
                   Archive
                 </Button>
               </div>
@@ -296,9 +305,9 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
           </div>
 
           {/* AI Agent prompt */}
-          <div className="shrink-0 border-t px-6 py-3">
+          <div className="shrink-0 border-t px-6 py-4">
             {agentAnswer && (
-              <div className="mb-2 rounded-lg border bg-muted/40 px-3 py-2.5">
+              <div className="mb-3 rounded-lg border bg-muted/40 px-3 py-2.5">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">AI Answer</p>
                 <p className="text-xs text-foreground leading-relaxed">{agentAnswer}</p>
                 <button onClick={() => setAgentAnswer("")} className="mt-1.5 text-[10px] text-muted-foreground hover:text-foreground">
@@ -306,7 +315,7 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
                 </button>
               </div>
             )}
-            <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2.5">
+            <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="Ask AI about this email..."
@@ -314,15 +323,16 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
                 onChange={(e) => setAgentQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleAskAI(); }}
                 disabled={agentLoading}
-                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none disabled:opacity-50"
+                className="flex-1 rounded-lg border bg-muted/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
               />
-              {agentLoading ? (
-                <div className="size-2 shrink-0 rounded-full bg-amber-400 animate-pulse" />
-              ) : (
-                <button onClick={handleAskAI} disabled={!agentQuery.trim()}>
-                  <div className="size-2 shrink-0 rounded-full bg-emerald-400" title="Ask AI" />
-                </button>
-              )}
+              <Button
+                size="sm"
+                onClick={handleAskAI}
+                disabled={agentLoading || !agentQuery.trim()}
+                className="shrink-0"
+              >
+                {agentLoading ? "..." : "Ask"}
+              </Button>
             </div>
           </div>
         </div>

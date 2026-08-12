@@ -1,15 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SectionColumns } from "@/components/dashboard/section-columns";
+
+type EmailAccount = {
+  id: string;
+  email: string;
+  displayName: string | null;
+  provider: string;
+  lastSyncAt: string | null;
+};
 
 export function SettingsSection() {
   const [voice, setVoice] = useState("professional");
   const [digestTime, setDigestTime] = useState("07:00");
   const [digestDays, setDigestDays] = useState(["Mon","Tue","Wed","Thu","Fri"]);
   const [followUpWindow, setFollowUpWindow] = useState("2 days");
+  const [accounts, setAccounts] = useState<EmailAccount[]>([]);
+
+  useEffect(() => {
+    fetch("/api/email-accounts")
+      .then((r) => r.json())
+      .then((d) => setAccounts(d.accounts ?? []))
+      .catch(() => {});
+  }, []);
+
+  const gmailAccounts = accounts.filter((a) => a.provider === "gmail");
+  const outlookAccounts = accounts.filter((a) => a.provider === "outlook");
 
   const toggleDay = (day: string) => {
     setDigestDays((prev) =>
@@ -35,20 +54,33 @@ export function SettingsSection() {
                 Not connected
               </Badge>
             </div>
-            <Button size="sm" className="mt-3">Connect Outlook</Button>
+            <Button size="sm" className="mt-3" disabled>Coming soon</Button>
           </div>
+
           <div className="rounded-lg border p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium">Gmail / Google</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">Connect your Gmail or Google Workspace account</p>
+                {gmailAccounts.length > 0 ? (
+                  gmailAccounts.map((a) => (
+                    <p key={a.id} className="mt-0.5 text-xs text-muted-foreground">{a.email}</p>
+                  ))
+                ) : (
+                  <p className="mt-0.5 text-xs text-muted-foreground">Connect your Gmail or Google Workspace account</p>
+                )}
               </div>
-              <Badge variant="outline" className="text-amber-400 border-amber-400/30 bg-amber-400/10 shrink-0">
-                Not connected
-              </Badge>
+              {gmailAccounts.length > 0 ? (
+                <Badge variant="outline" className="text-emerald-400 border-emerald-400/30 bg-emerald-400/10 shrink-0">
+                  Connected
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-amber-400 border-amber-400/30 bg-amber-400/10 shrink-0">
+                  Not connected
+                </Badge>
+              )}
             </div>
             <a href="/api/gmail/connect" className="mt-3 inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-              Connect Gmail
+              {gmailAccounts.length > 0 ? "Add another Gmail" : "Connect Gmail"}
             </a>
           </div>
         </div>

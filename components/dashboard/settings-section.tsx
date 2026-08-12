@@ -9,6 +9,7 @@ export function SettingsSection() {
   const [voice, setVoice] = useState("professional");
   const [digestTime, setDigestTime] = useState("07:00");
   const [digestDays, setDigestDays] = useState(["Mon","Tue","Wed","Thu","Fri"]);
+  const [followUpWindow, setFollowUpWindow] = useState("2 days");
 
   const toggleDay = (day: string) => {
     setDigestDays((prev) =>
@@ -156,7 +157,12 @@ export function SettingsSection() {
               {["24 hours", "2 days", "3 days", "5 days"].map((t) => (
                 <button
                   key={t}
-                  className="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors first:bg-primary first:text-primary-foreground first:border-primary"
+                  onClick={() => setFollowUpWindow(t)}
+                  className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    followUpWindow === t
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
                 >
                   {t}
                 </button>

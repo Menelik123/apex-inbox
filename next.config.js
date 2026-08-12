@@ -6,6 +6,17 @@ import("./env.mjs");
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  async redirects() {
+    return [
+      { source: "/pricing", destination: "/dashboard", permanent: false },
+      { source: "/blog", destination: "/dashboard", permanent: false },
+      { source: "/blog/:path*", destination: "/dashboard", permanent: false },
+      { source: "/docs", destination: "/dashboard", permanent: false },
+      { source: "/docs/:path*", destination: "/dashboard", permanent: false },
+      { source: "/guides", destination: "/dashboard", permanent: false },
+      { source: "/guides/:path*", destination: "/dashboard", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

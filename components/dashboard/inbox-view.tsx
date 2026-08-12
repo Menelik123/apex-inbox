@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { DraftModal } from "@/components/dashboard/draft-modal";
 
 const CATEGORY_STYLES: Record<string, string> = {
   "hot-leads": "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -57,7 +58,10 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+  const [showDraft, setShowDraft] = useState(false);
   const [agentQuery, setAgentQuery] = useState("");
+  const [agentAnswer, setAgentAnswer] = useState("");
+  const [agentLoading, setAgentLoading] = useState(false);
 
   const fetchEmails = useCallback(async () => {
     setLoading(true);
@@ -87,10 +91,39 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
     }
   };
 
+  const handleAskAI = async () => {
+    if (!agentQuery.trim() || !selectedEmail) return;
+    setAgentLoading(true);
+    setAgentAnswer("");
+    try {
+      const res = await fetch(`/api/emails/${selectedEmail.id}/ask`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: agentQuery }),
+      });
+      const data = await res.json();
+      setAgentAnswer(data.answer || "No answer returned.");
+    } catch {
+      setAgentAnswer("Something went wrong. Try again.");
+    } finally {
+      setAgentLoading(false);
+      setAgentQuery("");
+    }
+  };
+
   const hotCount = emails.filter((e) => e.category === "hot-leads").length;
   const unreadCount = emails.filter((e) => !e.read).length;
 
   return (
+    <>
+    {showDraft && selectedEmail && (
+      <DraftModal
+        emailId={selectedEmail.id}
+        emailSubject={selectedEmail.subject}
+        fromEmail={selectedEmail.email}
+        onClose={() => setShowDraft(false)}
+      />
+    )}
     <div className="flex h-[calc(100vh-68px)] w-full overflow-hidden rounded-lg border bg-background">
 
       {/* Email list */}
@@ -122,7 +155,7 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
                 Hot leads: <span className="font-semibold text-emerald-400">{hotCount}</span>
               </span>
               <span className="text-muted-foreground">
-                Need reply: <span className="font-semibold text-amber-400">{unreadCount}</span>
+                Unread: <span className="font-semibold text-amber-400">{unreadCount}</span>
               </span>
             </div>
           )}
@@ -157,7 +190,7 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
             emails.map((email) => (
               <button
                 key={email.id}
-                onClick={() => setSelectedEmail(email)}
+                onClick={() => { setSelectedEmail(email); setAgentAnswer(""); setShowDraft(false); }}
                 className={cn(
                   "w-full border-b px-5 py-3.5 text-left transition-colors hover:bg-muted/50",
                   selectedEmail?.id === email.id && "bg-muted",
@@ -241,10 +274,18 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button size="sm" className="h-7 text-xs">Draft Reply</Button>
-                <Button size="sm" variant="outline" className="h-7 text-xs">Schedule Follow-Up</Button>
-                <Button size="sm" variant="outline" className="h-7 text-xs">Create Task</Button>
-                <Button size="sm" variant="outline" className="h-7 text-xs">Archive</Button>
+                <Button size="sm" className="h-7 text-xs" onClick={() => setShowDraft(true)}>
+                  Draft Reply
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" disabled title="Coming soon">
+                  Schedule Follow-Up
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" disabled title="Coming soon">
+                  Create Task
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" disabled title="Coming soon">
+                  Archive
+                </Button>
               </div>
             </div>
 
@@ -256,19 +297,37 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
 
           {/* AI Agent prompt */}
           <div className="shrink-0 border-t px-6 py-3">
+            {agentAnswer && (
+              <div className="mb-2 rounded-lg border bg-muted/40 px-3 py-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">AI Answer</p>
+                <p className="text-xs text-foreground leading-relaxed">{agentAnswer}</p>
+                <button onClick={() => setAgentAnswer("")} className="mt-1.5 text-[10px] text-muted-foreground hover:text-foreground">
+                  Dismiss
+                </button>
+              </div>
+            )}
             <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2.5">
               <input
                 type="text"
                 placeholder="Ask AI about this email..."
                 value={agentQuery}
                 onChange={(e) => setAgentQuery(e.target.value)}
-                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                onKeyDown={(e) => { if (e.key === "Enter") handleAskAI(); }}
+                disabled={agentLoading}
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none disabled:opacity-50"
               />
-              <div className="size-2 shrink-0 rounded-full bg-emerald-400" title="Agent online" />
+              {agentLoading ? (
+                <div className="size-2 shrink-0 rounded-full bg-amber-400 animate-pulse" />
+              ) : (
+                <button onClick={handleAskAI} disabled={!agentQuery.trim()}>
+                  <div className="size-2 shrink-0 rounded-full bg-emerald-400" title="Ask AI" />
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
     </div>
+    </>
   );
 }

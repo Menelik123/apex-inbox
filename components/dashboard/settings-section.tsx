@@ -46,7 +46,9 @@ export function SettingsSection() {
                 Not connected
               </Badge>
             </div>
-            <Button size="sm" variant="outline" className="mt-3">Connect Gmail</Button>
+            <Button size="sm" variant="outline" className="mt-3" asChild>
+              <a href="/api/gmail/connect">Connect Gmail</a>
+            </Button>
           </div>
         </div>
       </SectionColumns>

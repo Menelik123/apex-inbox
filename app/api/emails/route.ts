@@ -1,0 +1,91 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/db";
+
+const CATEGORY_MAP: Record<string, string> = {
+  HOT_LEAD: "hot-leads",
+  NEEDS_RESPONSE: "needs-response",
+  CLIENT_FOLLOWUP: "client-followups",
+  ADMIN: "admin",
+  NOISE: "noise",
+};
+
+export async function GET(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const category = req.nextUrl.searchParams.get("category") ?? "all";
+
+  const emailAccounts = await prisma.emailAccount.findMany({
+    where: { userId: session.user.id, isActive: true },
+    select: { id: true },
+  });
+
+  if (emailAccounts.length === 0) {
+    return NextResponse.json({ emails: [], hasAccounts: false });
+  }
+
+  const accountIds = emailAccounts.map((a) => a.id);
+
+  // Map URL category slug back to DB enum
+  const dbCategory = Object.entries(CATEGORY_MAP).find(([, v]) => v === category)?.[0];
+
+  const emails = await prisma.email.findMany({
+    where: {
+      emailAccountId: { in: accountIds },
+      isArchived: false,
+      ...(dbCategory ? { category: dbCategory as any } : {}),
+    },
+    orderBy: { receivedAt: "desc" },
+    take: 100,
+    select: {
+      id: true,
+      messageId: true,
+      fromName: true,
+      fromEmail: true,
+      subject: true,
+      snippet: true,
+      bodyText: true,
+      receivedAt: true,
+      isRead: true,
+      category: true,
+      aiSummary: true,
+      aiAction: true,
+      aiWhy: true,
+      aiConfidence: true,
+    },
+  });
+
+  const formatted = emails.map((e) => ({
+    id: e.id,
+    messageId: e.messageId,
+    from: e.fromName || e.fromEmail,
+    email: e.fromEmail,
+    subject: e.subject,
+    preview: e.snippet || e.bodyText?.slice(0, 200) || "",
+    summary: e.aiSummary || "",
+    action: e.aiAction || "Review manually",
+    why: e.aiWhy || "",
+    category: CATEGORY_MAP[e.category ?? "ADMIN"] ?? "admin",
+    confidence: e.aiConfidence ?? 0,
+    time: formatTime(e.receivedAt),
+    read: e.isRead,
+  }));
+
+  return NextResponse.json({ emails: formatted, hasAccounts: true });
+}
+
+function formatTime(date: Date): string {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+  if (days === 0) {
+    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  }
+  if (days === 1) return "Yesterday";
+  if (days < 7) return date.toLocaleDateString("en-US", { weekday: "short" });
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}

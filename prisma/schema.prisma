@@ -1,18 +1,37 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider     = "postgresql"
-  url          = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum UserRole {
   ADMIN
   USER
+}
+
+enum EmailCategory {
+  HOT_LEAD
+  NEEDS_RESPONSE
+  CLIENT_FOLLOWUP
+  ADMIN
+  NOISE
+}
+
+enum ConversationState {
+  NEW_LEAD
+  NEEDS_QUALIFICATION
+  AWAITING_OUR_RESPONSE
+  AWAITING_THEIR_RESPONSE
+  FOLLOW_UP_SCHEDULED
+  MEETING_BOOKED
+  PROPOSAL_SENT
+  WON
+  LOST
+  DORMANT
+  CLIENT_RISK
 }
 
 model Account {
@@ -28,14 +47,14 @@ model Account {
   scope             String?
   id_token          String?  @db.Text
   session_state     String?
-  createdAt         DateTime @default(now()) @map(name: "created_at")
-  updatedAt         DateTime @default(now()) @map(name: "updated_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
-  @@map(name: "accounts")
+  @@map("accounts")
 }
 
 model Session {
@@ -46,7 +65,7 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@map(name: "sessions")
+  @@map("sessions")
 }
 
 model User {
@@ -55,19 +74,20 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  createdAt     DateTime  @default(now()) @map(name: "created_at")
-  updatedAt     DateTime  @default(now()) @map(name: "updated_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @map("updated_at")
   role          UserRole  @default(USER)
 
-  accounts Account[]
-  sessions Session[]
+  accounts      Account[]
+  sessions      Session[]
+  emailAccounts EmailAccount[]
 
-  stripeCustomerId       String?   @unique @map(name: "stripe_customer_id")
-  stripeSubscriptionId   String?   @unique @map(name: "stripe_subscription_id")
-  stripePriceId          String?   @map(name: "stripe_price_id")
-  stripeCurrentPeriodEnd DateTime? @map(name: "stripe_current_period_end")
+  stripeCustomerId       String?   @unique @map("stripe_customer_id")
+  stripeSubscriptionId   String?   @unique @map("stripe_subscription_id")
+  stripePriceId          String?   @map("stripe_price_id")
+  stripeCurrentPeriodEnd DateTime? @map("stripe_current_period_end")
 
-  @@map(name: "users")
+  @@map("users")
 }
 
 model VerificationToken {
@@ -76,5 +96,129 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-  @@map(name: "verification_tokens")
+  @@map("verification_tokens")
+}
+
+// Connected email mailboxes
+model EmailAccount {
+  id           String   @id @default(cuid())
+  userId       String
+  provider     String   // "gmail" | "outlook"
+  email        String
+  displayName  String?
+  accessToken  String   @db.Text
+  refreshToken String   @db.Text
+  expiresAt    DateTime
+  scope        String
+  isActive     Boolean  @default(true)
+  lastSyncAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emails  Email[]
+
+  @@unique([userId, email])
+  @@index([userId])
+  @@map("email_accounts")
+}
+
+// Individual emails fetched and categorized
+model Email {
+  id             String        @id @default(cuid())
+  emailAccountId String
+  messageId      String        // provider message ID
+  threadId       String        // provider thread ID
+  fromName       String?
+  fromEmail      String
+  subject        String        @db.Text
+  bodyText       String?       @db.Text
+  bodyHtml       String?       @db.Text
+  snippet        String?       @db.Text
+  receivedAt     DateTime
+  isRead         Boolean       @default(false)
+  isArchived     Boolean       @default(false)
+  category       EmailCategory?
+  aiSummary      String?       @db.Text
+  aiAction       String?       @db.Text
+  aiWhy          String?       @db.Text
+  aiConfidence   Float?
+  followUpId     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  emailAccount EmailAccount @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
+  followUp     FollowUp?    @relation(fields: [followUpId], references: [id])
+  drafts       Draft[]
+  auditLogs    AuditLog[]
+
+  @@unique([emailAccountId, messageId])
+  @@index([emailAccountId])
+  @@index([category])
+  @@index([receivedAt])
+  @@map("emails")
+}
+
+// Follow-up tracking and pipeline state
+model FollowUp {
+  id                String            @id @default(cuid())
+  userId            String
+  contactEmail      String
+  contactName       String?
+  state             ConversationState @default(NEW_LEAD)
+  subject           String?           @db.Text
+  notes             String?           @db.Text
+  dueAt             DateTime?
+  completedAt       DateTime?
+  estimatedValue    Float?
+  wonAt             DateTime?
+  lostAt            DateTime?
+  lostReason        String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  emails    Email[]
+  auditLogs AuditLog[]
+
+  @@index([userId])
+  @@index([state])
+  @@index([dueAt])
+  @@map("follow_ups")
+}
+
+// AI-generated reply drafts pending approval
+model Draft {
+  id          String   @id @default(cuid())
+  emailId     String
+  body        String   @db.Text
+  approved    Boolean  @default(false)
+  approvedAt  DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  email Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  @@index([emailId])
+  @@map("drafts")
+}
+
+// Immutable audit log for all actions
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entityType String
+  entityId   String?
+  emailId    String?
+  followUpId String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  email    Email?    @relation(fields: [emailId], references: [id])
+  followUp FollowUp? @relation(fields: [followUpId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

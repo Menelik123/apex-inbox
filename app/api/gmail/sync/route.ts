@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No connected email accounts" }, { status: 400 });
   }
 
-  const results = [];
+  const results: Array<{ email: string; synced?: number; skipped?: number; error?: string }> = [];
 
   for (const account of emailAccounts) {
     try {

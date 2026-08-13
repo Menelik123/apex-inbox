@@ -5,8 +5,81 @@ import { constructMetadata } from "@/lib/utils";
 export const metadata = constructMetadata({
   title: "Apex Inbox — The AI Sales Action Inbox",
   description:
-    "Every email gets a verdict. Every verdict gets a next action. Apex Inbox finds the leads, replies, and follow-ups buried in your Gmail and tells you exactly what to do next.",
+    "Every email gets a verdict. Every verdict gets a next action. Apex Inbox connects to Gmail, sorts your sales conversations into five action queues, and tells you exactly what to do next.",
+  canonicalUrl: "https://apexinbox.io",
 });
+
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      name: "Apex Digital",
+      url: "https://apexinbox.io",
+      contactPoint: {
+        "@type": "ContactPoint",
+        email: "support@apexdigi.org",
+        contactType: "customer support",
+      },
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "Apex Inbox",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      description:
+        "An AI Sales Action Inbox that connects to Gmail, categorizes incoming emails into five action queues, generates AI summaries and draft replies, and helps sales teams respond faster to leads.",
+      offers: {
+        "@type": "Offer",
+        price: "49",
+        priceCurrency: "USD",
+        priceSpecification: {
+          "@type": "UnitPriceSpecification",
+          price: "49",
+          priceCurrency: "USD",
+          unitText: "MONTH",
+        },
+      },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: "Is my Gmail data safe?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Yes. Apex Inbox connects through Google's official OAuth — we never see or store your Google password. You can revoke access from your Google Account settings at any time. All data is encrypted in transit and at rest.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Does my email content train AI models?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "No. By default, Anthropic does not use commercial API inputs to train shared models. Your email content is sent only to generate your specific categorizations and summaries — never shared with other users.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Which email categories does Apex Inbox use?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Every email is classified into one of five action buckets: Hot Lead, Needs Response, Client Follow-Up, Admin, and Noise.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Can I disconnect Gmail or delete my account?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Yes. From the Settings page you can disconnect your Gmail account or delete your Apex Inbox account entirely. Account deletion removes all your data within 30 days.",
+          },
+        },
+      ],
+    },
+  ],
+};
 
 const DEMO_EMAILS = [
   {
@@ -214,13 +287,17 @@ const SOLO_FEATURES = [
   "Schedule follow-up reminders",
   "Smart sync with auto-pagination",
   "Full-text search (sender, subject, body)",
-  "Archive and read-state management",
+  "Archive and read-state (Apex view)",
   "Manual category correction",
 ];
 
 export default function HomePage() {
   return (
     <div className="text-white" style={{ background: "#080e18" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
+      />
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-6 pb-20 pt-28 text-center">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-1.5">

@@ -6,6 +6,7 @@ export const metadata = constructMetadata({
   title: "Pricing — Apex Inbox",
   description:
     "Simple, honest pricing for the AI Sales Action Inbox. Start free — no credit card required.",
+  canonicalUrl: "https://apexinbox.io/pricing",
 });
 
 const SOLO_FEATURES = [

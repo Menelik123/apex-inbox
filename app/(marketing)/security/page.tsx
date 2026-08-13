@@ -6,12 +6,13 @@ export const metadata = constructMetadata({
   title: "Security — Apex Inbox",
   description:
     "How Apex Inbox handles your Gmail access, email data, OAuth scopes, encryption, and account deletion. Everything you need to know before connecting your inbox.",
+  canonicalUrl: "https://apexinbox.io/security",
 });
 
 const SCOPES = [
   {
     scope: "https://www.googleapis.com/auth/gmail.modify",
-    why: "Allows Apex Inbox to read your inbox messages for classification and summaries, and to send replies on your behalf when you click Send. We do not use this scope to delete messages, access Drive, or modify labels.",
+    why: "A restricted Gmail scope that allows reading messages, composing and sending email, and modifying message labels (used for actions such as marking messages read and archiving). Apex Inbox uses this scope to sync your inbox, send replies you approve, and manage read/archive state. We do not delete messages or access Google Drive.",
   },
   {
     scope: "https://www.googleapis.com/auth/userinfo.email",
@@ -183,10 +184,24 @@ export default function SecurityPage() {
                   <p className="text-sm leading-relaxed text-[#8da4be]">
                     When classifying an email or generating a draft reply, we
                     send the email subject and body text to Anthropic&apos;s
-                    Claude API. Anthropic&apos;s usage policies prohibit using
-                    API inputs to train shared models. Your email content is
-                    processed only to generate your specific result and is not
-                    retained by Anthropic beyond the API request.
+                    Claude API. By default, Anthropic does not use commercial
+                    API inputs to train shared models, per their usage policies.
+                    We do not have a separately negotiated zero-data-retention
+                    agreement beyond Anthropic&apos;s standard commercial API
+                    terms. Your email content is sent only to generate your
+                    specific result — never shared with other users.
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1 text-sm font-semibold text-white">
+                    Archive and read-state
+                  </p>
+                  <p className="text-sm leading-relaxed text-[#8da4be]">
+                    When you archive or mark an email as read in Apex Inbox,
+                    that action currently updates Apex&apos;s database only. The
+                    email&apos;s state in your Gmail inbox is not changed. Gmail
+                    synchronization for archive and read actions is planned for
+                    a future release.
                   </p>
                 </div>
                 <div>
@@ -395,7 +410,7 @@ export default function SecurityPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="mt-0.5 shrink-0 text-emerald-400">✓</span>
-                  Apex Inbox does not yet hold a SOC 2 certification — we are a
+                  Apex Inbox does not yet hold a SOC 2 certification — we are an
                   early-stage product. We are committed to transparent security
                   practices while we grow
                 </li>

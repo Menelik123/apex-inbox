@@ -28,8 +28,9 @@ export async function generateMetadata({
   const { title, description } = page;
 
   return constructMetadata({
-    title: `${title} – SaaS Starter`,
+    title: `${title} — Apex Inbox`,
     description: description,
+    canonicalUrl: `https://apexinbox.io/${params.slug}`,
   });
 }
 

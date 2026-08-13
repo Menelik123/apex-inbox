@@ -16,16 +16,19 @@ export function constructMetadata({
   image = siteConfig.ogImage,
   icons = "/favicon.ico",
   noIndex = false,
+  canonicalUrl,
 }: {
   title?: string;
   description?: string;
   image?: string;
   icons?: string;
   noIndex?: boolean;
+  canonicalUrl?: string;
 } = {}): Metadata {
   return {
     title,
     description,
+    ...(canonicalUrl && { alternates: { canonical: canonicalUrl } }),
     keywords: [
       "AI inbox",
       "email management",

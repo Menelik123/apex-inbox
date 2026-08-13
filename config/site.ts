@@ -18,18 +18,19 @@ export const siteConfig: SiteConfig = {
 
 export const footerLinks: SidebarNavItem[] = [
   {
-    title: "Company",
+    title: "Product",
     items: [
+      { title: "How It Works", href: "/#how-it-works" },
       { title: "Pricing", href: "/pricing" },
-      { title: "Terms", href: "/terms" },
-      { title: "Privacy", href: "/privacy" },
+      { title: "Security", href: "/security" },
     ],
   },
   {
-    title: "Support",
+    title: "Company",
     items: [
+      { title: "Terms", href: "/terms" },
+      { title: "Privacy", href: "/privacy" },
       { title: "Contact", href: "mailto:support@apexdigi.org" },
-      { title: "Get Started", href: "/login" },
     ],
   },
 ];

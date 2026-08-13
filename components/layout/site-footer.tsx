@@ -5,34 +5,43 @@ import { footerLinks, siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/layout/mode-toggle";
 
-import { NewsletterForm } from "../forms/newsletter-form";
-import { Icons } from "../shared/icons";
-
 export function SiteFooter({ className }: React.HTMLAttributes<HTMLElement>) {
   return (
     <footer className={cn("border-t", className)}>
-      <div className="container grid max-w-6xl grid-cols-2 gap-6 py-14 md:grid-cols-5">
-        {footerLinks.map((section) => (
-          <div key={section.title}>
-            <span className="text-sm font-medium text-foreground">
-              {section.title}
+      <div className="container flex max-w-6xl flex-col gap-10 py-12 sm:flex-row sm:gap-16">
+        {/* Brand column */}
+        <div className="shrink-0">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="font-urban text-lg font-bold">
+              {siteConfig.name}
             </span>
-            <ul className="mt-4 list-inside space-y-3">
-              {section.items?.map((link) => (
-                <li key={link.title}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-primary"
-                  >
-                    {link.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-        <div className="col-span-full flex flex-col items-end sm:col-span-1 md:col-span-2">
-          <NewsletterForm />
+          </Link>
+          <p className="mt-2 max-w-[200px] text-xs leading-relaxed text-muted-foreground">
+            The AI Sales Action Inbox for Gmail.
+          </p>
+        </div>
+
+        {/* Link columns */}
+        <div className="flex flex-1 flex-wrap gap-8">
+          {footerLinks.map((section) => (
+            <div key={section.title} className="min-w-[120px]">
+              <span className="text-sm font-medium text-foreground">
+                {section.title}
+              </span>
+              <ul className="mt-4 list-inside space-y-3">
+                {section.items?.map((link) => (
+                  <li key={link.title}>
+                    <Link
+                      href={link.href}
+                      className="text-sm text-muted-foreground hover:text-primary"
+                    >
+                      {link.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       </div>
 

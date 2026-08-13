@@ -1,22 +1,68 @@
 ---
-title: Privacy
-description: The Privacy Policy for Taxonomy App.
+title: Privacy Policy
+description: Privacy Policy for Apex Inbox — how we collect, use, and protect your data.
 ---
 
-Blandit libero volutpat sed cras ornare arcu. Cursus sit amet dictum sit amet. Nunc vel risus commodo viverra maecenas accumsan. Libero id faucibus nisl tincidunt eget nullam non nisi est. Varius quam quisque id diam vel quam. Id donec ultrices tincidunt arcu non.
+_Last updated: August 12, 2026_
 
-## Consent
+Apex Inbox ("we," "us," or "our") is operated by Apex Digital. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our service.
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Volutpat sed cras ornare arcu. Nibh ipsum consequat nisl vel pretium lectus quam id leo. A arcu cursus vitae congue. Amet justo donec enim diam. Vel pharetra vel turpis nunc eget lorem. Gravida quis blandit turpis cursus in. Semper auctor neque vitae tempus. Elementum facilisis leo vel fringilla est ullamcorper eget nulla. Imperdiet nulla malesuada pellentesque elit eget.
+## Information We Collect
 
-Felis donec et odio pellentesque diam volutpat commodo sed.
+**Account information.** When you sign in with Google, we receive your name, email address, and profile photo from Google's OAuth service. We do not receive your Google password.
 
-Tortor consequat id porta nibh. Fames ac turpis egestas maecenas pharetra convallis posuere morbi leo. Scelerisque fermentum dui faucibus in. Tortor posuere ac ut consequat semper viverra.
+**Gmail access.** With your explicit permission, Apex Inbox reads your Gmail messages to categorize them, generate summaries, and surface action items. We access only the inbox data necessary to provide the service. We do not sell, share, or use your email content to train AI models or for any purpose beyond delivering the features described on this page.
 
-## Information we collect
+**Usage data.** We collect standard server logs (request timestamps, IP addresses, browser type) and in-app usage signals (which features you use, error events) to maintain and improve the service.
 
-Amet justo donec enim diam. In hendrerit gravida rutrum quisque non. Hac habitasse platea dictumst quisque sagittis purus sit.
+**Follow-ups and notes.** Any follow-up reminders or notes you create within Apex Inbox are stored in our database and associated with your account.
 
-## How we use your Information
+## How We Use Your Information
 
-Ut sem nulla pharetra diam sit amet nisl suscipit adipiscing. Consectetur adipiscing elit pellentesque habitant. Ut tristique et egestas quis ipsum suspendisse ultrices gravida.
+- To authenticate you and maintain your session
+- To read and classify your Gmail messages using Claude AI (Anthropic)
+- To generate draft replies and email summaries on your request
+- To send follow-up reminders you schedule
+- To diagnose errors and improve the product
+- To communicate product updates and support responses
+
+## Third-Party Services
+
+Apex Inbox uses the following sub-processors:
+
+| Service                   | Purpose                                            |
+| ------------------------- | -------------------------------------------------- |
+| Google (Gmail API, OAuth) | Email access and authentication                    |
+| Anthropic (Claude API)    | AI categorization, summaries, and draft generation |
+| Neon (PostgreSQL)         | Database storage                                   |
+| Vercel                    | Hosting and infrastructure                         |
+
+We do not sell your personal information to any third party.
+
+## Data Retention
+
+Your account data is retained for as long as your account is active. You can request deletion of your account and all associated data at any time from the Settings page. Upon deletion, your data is removed from our database within 30 days.
+
+## Gmail OAuth Scopes
+
+Apex Inbox requests the `https://www.googleapis.com/auth/gmail.modify` scope, which allows us to read your messages and send replies on your behalf. We do not delete messages, access Google Drive, or request any scope beyond what is required to provide the features listed above.
+
+## Security
+
+We use HTTPS for all data in transit. Database credentials and OAuth tokens are stored as environment secrets and are never exposed in client-side code. Access to production systems is restricted to authorized personnel.
+
+## Your Rights
+
+You may request access to, correction of, or deletion of your personal information at any time by emailing support@apexdigi.org. If you are located in the EU or California, you have additional rights under GDPR and CCPA respectively; contact us to exercise them.
+
+## Children's Privacy
+
+Apex Inbox is not intended for users under 13 years of age. We do not knowingly collect information from children under 13.
+
+## Changes to This Policy
+
+We may update this Privacy Policy from time to time. We will post the updated policy on this page with a revised "Last updated" date. Continued use of the service after changes constitutes acceptance of the updated policy.
+
+## Contact
+
+Questions about this policy? Email us at support@apexdigi.org.

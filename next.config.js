@@ -8,13 +8,12 @@ const nextConfig = {
   swcMinify: true,
   async redirects() {
     return [
-      { source: "/pricing", destination: "/dashboard", permanent: false },
-      { source: "/blog", destination: "/dashboard", permanent: false },
-      { source: "/blog/:path*", destination: "/dashboard", permanent: false },
-      { source: "/docs", destination: "/dashboard", permanent: false },
-      { source: "/docs/:path*", destination: "/dashboard", permanent: false },
-      { source: "/guides", destination: "/dashboard", permanent: false },
-      { source: "/guides/:path*", destination: "/dashboard", permanent: false },
+      { source: "/blog", destination: "/", permanent: false },
+      { source: "/blog/:path*", destination: "/", permanent: false },
+      { source: "/docs", destination: "/", permanent: false },
+      { source: "/docs/:path*", destination: "/", permanent: false },
+      { source: "/guides", destination: "/", permanent: false },
+      { source: "/guides/:path*", destination: "/", permanent: false },
     ];
   },
   async headers() {
@@ -24,7 +23,10 @@ const nextConfig = {
         headers: [
           { key: "X-Frame-Options", value: "ALLOWALL" },
           { key: "Access-Control-Allow-Origin", value: "*" },
-          { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, DELETE, OPTIONS" },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, POST, PUT, DELETE, OPTIONS",
+          },
           { key: "Access-Control-Allow-Headers", value: "*" },
         ],
       },

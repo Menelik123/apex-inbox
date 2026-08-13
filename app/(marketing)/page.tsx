@@ -53,7 +53,7 @@ const FEATURES = [
   },
   {
     title: "AI Draft Reply",
-    body: "One click generates a context-aware draft in your voice. Edit, approve, and send — or discard. You're always in control.",
+    body: "One click generates a context-aware draft in your voice. Review and edit in-app, then send directly — or copy and discard. You're always in control.",
   },
   {
     title: "Ask AI Anything",
@@ -65,11 +65,11 @@ const FEATURES = [
   },
   {
     title: "Smart Sync",
-    body: "Connects to your Gmail inbox and continuously pulls new messages. AI classifies them in real time — no manual sorting ever.",
+    body: "Connects to your Gmail and syncs new messages in batches. AI classifies each one the moment it's pulled — no manual sorting required.",
   },
   {
     title: "One-Click Reclassify",
-    body: "AI got it wrong? Correct the category with a single click. Your override sticks permanently and trains the system to do better.",
+    body: "AI got it wrong? Correct the category with a single click. Your override sticks, keeping your inbox accurate over time.",
   },
 ];
 
@@ -120,8 +120,8 @@ const PLANS = [
       "Up to 3 Gmail inboxes",
       "Everything in Solo",
       "Priority AI processing",
-      "Follow-up pipeline view",
-      "Category analytics",
+      "Follow-up pipeline view (coming soon)",
+      "Category analytics (coming soon)",
       "Priority support",
     ],
     cta: "Start free trial",
@@ -136,8 +136,8 @@ const PLANS = [
       "Running a team or managing inboxes for multiple clients? Let's build something together.",
     features: [
       "Unlimited inboxes",
-      "White-label option",
-      "Multi-user access",
+      "White-label option (coming soon)",
+      "Multi-user access (coming soon)",
       "Custom AI business context per inbox",
       "Dedicated onboarding",
       "Everything in Pro",
@@ -156,7 +156,7 @@ export default function HomePage() {
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
           <span className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
-            AI-Powered Email Intelligence
+            AI Action Inbox
           </span>
         </div>
 

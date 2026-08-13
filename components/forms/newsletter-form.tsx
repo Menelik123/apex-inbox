@@ -30,15 +30,11 @@ export function NewsletterForm() {
     },
   });
 
-  function onSubmit(data: z.infer<typeof FormSchema>) {
+  function onSubmit(_data: z.infer<typeof FormSchema>) {
     form.reset();
     toast({
-      title: "You submitted the following values:",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
+      title: "You're on the list!",
+      description: "We'll send product updates to your inbox.",
     });
   }
 

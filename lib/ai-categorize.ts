@@ -5,7 +5,12 @@ const client = new Anthropic({
 });
 
 export type CategoryResult = {
-  category: "HOT_LEAD" | "NEEDS_RESPONSE" | "CLIENT_FOLLOWUP" | "ADMIN" | "NOISE";
+  category:
+    | "HOT_LEAD"
+    | "NEEDS_RESPONSE"
+    | "CLIENT_FOLLOWUP"
+    | "ADMIN"
+    | "NOISE";
   summary: string;
   action: string;
   why: string;
@@ -16,7 +21,7 @@ export async function categorizeEmail(
   from: string,
   subject: string,
   bodySnippet: string,
-  businessContext = "life insurance coaching and sales training"
+  businessContext = "life insurance coaching and sales training",
 ): Promise<CategoryResult> {
   const prompt = `You are an AI email assistant for a ${businessContext} business. Analyze this email and respond with a JSON object only.
 
@@ -48,5 +53,18 @@ Respond with this exact JSON structure:
 
   const text = (message.content[0] as any).text;
   const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? text);
-  return json as CategoryResult;
+  const result = json as CategoryResult;
+
+  // Guard: action must be a short instruction, not email body content
+  if (typeof result.action !== "string" || result.action.length > 250) {
+    result.action = "Review manually";
+  }
+  if (typeof result.summary !== "string" || result.summary.length > 500) {
+    result.summary = result.summary?.slice(0, 500) ?? "";
+  }
+  if (typeof result.why !== "string" || result.why.length > 400) {
+    result.why = result.why?.slice(0, 400) ?? "";
+  }
+
+  return result;
 }

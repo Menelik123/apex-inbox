@@ -596,7 +596,9 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
                       Suggested action
                     </p>
                     <p className="mt-0.5 text-sm font-semibold text-primary">
-                      {selectedEmail.action}
+                      {selectedEmail.action.length > 250
+                        ? selectedEmail.action.slice(0, 247) + "..."
+                        : selectedEmail.action}
                     </p>
                   </div>
                 )}

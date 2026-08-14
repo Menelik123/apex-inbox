@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/db";
-import { getGmailClient, parseEmailBody, extractHeader } from "@/lib/gmail";
+
 import { categorizeEmail } from "@/lib/ai-categorize";
+import { prisma } from "@/lib/db";
+import { extractHeader, getGmailClient, parseEmailBody } from "@/lib/gmail";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
-const MAX_TO_PROCESS = 20; // AI calls per sync run
+// Initial sync: reach back 14 days, process more emails
+const INITIAL_LOOKBACK_DAYS = 14;
+const MAX_INITIAL = 50;
+const MAX_INCREMENTAL = 25;
+
+function gmailDateFilter(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}/${m}/${day}`;
+}
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -21,24 +34,46 @@ export async function POST(req: NextRequest) {
   });
 
   if (emailAccounts.length === 0) {
-    return NextResponse.json({ error: "No connected email accounts" }, { status: 400 });
+    return NextResponse.json(
+      { error: "No connected email accounts" },
+      { status: 400 },
+    );
   }
 
-  const results: Array<{ email: string; synced?: number; skipped?: number; hasMore?: boolean; error?: string }> = [];
+  const results: Array<{
+    email: string;
+    synced?: number;
+    skipped?: number;
+    hasMore?: boolean;
+    isInitialSync?: boolean;
+    error?: string;
+  }> = [];
 
   for (const account of emailAccounts) {
     try {
-      const gmail = await getGmailClient(account.accessToken, account.refreshToken);
+      const gmail = await getGmailClient(
+        account.accessToken,
+        account.refreshToken,
+      );
 
-      // Collect message IDs from Gmail inbox — no time filter, DB handles dedup
+      const isInitialSync = !account.lastSyncAt;
+      const maxToProcess = isInitialSync ? MAX_INITIAL : MAX_INCREMENTAL;
+
+      // For initial sync, use a date filter so we reach back 14 days.
+      // For incremental syncs, no date filter — DB dedup handles the rest.
+      const queryBase = isInitialSync
+        ? `in:inbox after:${gmailDateFilter(INITIAL_LOOKBACK_DAYS)}`
+        : "in:inbox";
+
+      // Collect message IDs — paginate until we have enough candidates
       const allMessageIds: string[] = [];
       let pageToken: string | undefined = undefined;
+      const idCap = isInitialSync ? 400 : 150;
 
-      // Collect enough IDs to find MAX_TO_PROCESS unseen ones
       do {
         const listRes = await gmail.users.messages.list({
           userId: "me",
-          q: "in:inbox",
+          q: queryBase,
           maxResults: 50,
           ...(pageToken ? { pageToken } : {}),
         });
@@ -48,21 +83,24 @@ export async function POST(req: NextRequest) {
         }
 
         pageToken = listRes.data.nextPageToken ?? undefined;
+      } while (pageToken && allMessageIds.length < idCap);
 
-        // Check how many we already have vs how many we've collected
-        if (allMessageIds.length >= 200) break; // safety cap per run
-      } while (pageToken && allMessageIds.length < 100);
-
-      // Bulk check which ones are already in DB
+      // Bulk check which IDs are already in DB
       const existingSet = new Set(
-        (await prisma.email.findMany({
-          where: { emailAccountId: account.id, messageId: { in: allMessageIds } },
-          select: { messageId: true },
-        })).map((e) => e.messageId)
+        (
+          await prisma.email.findMany({
+            where: {
+              emailAccountId: account.id,
+              messageId: { in: allMessageIds },
+            },
+            select: { messageId: true },
+          })
+        ).map((e) => e.messageId),
       );
 
-      const toFetch = allMessageIds.filter((id) => !existingSet.has(id)).slice(0, MAX_TO_PROCESS);
-      const hasMore = allMessageIds.filter((id) => !existingSet.has(id)).length > MAX_TO_PROCESS;
+      const unseen = allMessageIds.filter((id) => !existingSet.has(id));
+      const toFetch = unseen.slice(0, maxToProcess);
+      const hasMore = unseen.length > maxToProcess;
 
       let synced = 0;
       const skipped = existingSet.size;
@@ -82,20 +120,30 @@ export async function POST(req: NextRequest) {
         const dateStr = extractHeader(headers, "date");
         const receivedAt = dateStr ? new Date(dateStr) : new Date();
 
-        const fromMatch = fromRaw.match(/^(.*?)\s*<(.+?)>$/) ?? [null, null, fromRaw];
+        const fromMatch = fromRaw.match(/^(.*?)\s*<(.+?)>$/) ?? [
+          null,
+          null,
+          fromRaw,
+        ];
         const fromName = fromMatch[1]?.trim() || null;
         const fromEmail = fromMatch[2]?.trim() || fromRaw;
 
-        const { text: bodyText, html: bodyHtml } = parseEmailBody(payload ?? {});
+        const { text: bodyText, html: bodyHtml } = parseEmailBody(
+          payload ?? {},
+        );
         const snippet = full.data.snippet ?? "";
 
         let aiResult;
         try {
-          aiResult = await categorizeEmail(fromRaw, subject, bodyText || snippet);
+          aiResult = await categorizeEmail(
+            fromRaw,
+            subject,
+            bodyText || snippet,
+          );
         } catch {
           aiResult = {
             category: "ADMIN" as const,
-            summary: snippet,
+            summary: snippet.slice(0, 500),
             action: "Review manually",
             why: "AI categorization unavailable",
             confidence: 0,
@@ -133,7 +181,13 @@ export async function POST(req: NextRequest) {
         data: { lastSyncAt: new Date() },
       });
 
-      results.push({ email: account.email, synced, skipped, hasMore });
+      results.push({
+        email: account.email,
+        synced,
+        skipped,
+        hasMore,
+        isInitialSync,
+      });
     } catch (err) {
       console.error(`Sync failed for account ${account.email}:`, err);
       results.push({ email: account.email, error: String(err) });

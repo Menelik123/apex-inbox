@@ -122,7 +122,6 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
     try {
       while (true) {
         batch++;
-        if (batch > 1) setSyncMessage(`Syncing batch ${batch}...`);
 
         const res = await fetch("/api/gmail/sync", { method: "POST" });
         const data = await res.json();
@@ -144,11 +143,22 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
         );
         totalSynced += batchSynced;
 
+        const isInitialSync = (data.results as any[]).some(
+          (r: any) => r.isInitialSync,
+        );
         const hasMore = (data.results as any[]).some((r: any) => r.hasMore);
+
+        if (hasMore) {
+          setSyncMessage(
+            isInitialSync && batch === 1
+              ? `Initial sync — pulled ${totalSynced} emails, loading more...`
+              : `Synced ${totalSynced} so far, loading more...`,
+          );
+        }
 
         if (!hasMore) break;
         // Small pause between batches to avoid rate limits
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, 1500));
       }
 
       await fetchEmails();

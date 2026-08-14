@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,6 +47,20 @@ export function SettingsSection() {
   const [businessDaysOnly, setBusinessDaysOnly] = useState(true);
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [savedMsg, setSavedMsg] = useState<Record<string, boolean>>({});
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const connected = searchParams.get("connected");
+    const error = searchParams.get("error");
+    if (connected === "gmail") toast.success("Gmail connected successfully.");
+    if (connected === "outlook")
+      toast.success("Outlook connected successfully.");
+    if (error === "outlook_denied")
+      toast.error("Outlook connection was cancelled.");
+    if (error === "auth_failed")
+      toast.error("Connection failed. Please try again.");
+    if (error === "no_code") toast.error("OAuth error — no code returned.");
+  }, [searchParams]);
 
   useEffect(() => {
     fetch("/api/email-accounts")
@@ -64,6 +80,7 @@ export function SettingsSection() {
   }, []);
 
   const gmailAccounts = accounts.filter((a) => a.provider === "gmail");
+  const outlookAccounts = accounts.filter((a) => a.provider === "outlook");
 
   const toggleDay = (day: string) =>
     setDigestDays((prev) =>
@@ -101,21 +118,51 @@ export function SettingsSection() {
           <div className="rounded-lg border p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium">Outlook / Microsoft</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Connect your Outlook or Microsoft 365 account
-                </p>
+                <p className="text-sm font-medium">Outlook / Microsoft 365</p>
+                {outlookAccounts.length > 0 ? (
+                  outlookAccounts.map((a) => (
+                    <p
+                      key={a.id}
+                      className="mt-0.5 text-xs text-muted-foreground"
+                    >
+                      {a.email}
+                      {a.lastSyncAt && (
+                        <span className="ml-2 text-muted-foreground/60">
+                          Last sync: {new Date(a.lastSyncAt).toLocaleString()}
+                        </span>
+                      )}
+                    </p>
+                  ))
+                ) : (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Connect your Outlook or Microsoft 365 inbox
+                  </p>
+                )}
               </div>
-              <Badge
-                variant="outline"
-                className="shrink-0 border-amber-400/30 bg-amber-400/10 text-amber-400"
-              >
-                Not connected
-              </Badge>
+              {outlookAccounts.length > 0 ? (
+                <Badge
+                  variant="outline"
+                  className="shrink-0 border-emerald-400/30 bg-emerald-400/10 text-emerald-400"
+                >
+                  Connected
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="shrink-0 border-amber-400/30 bg-amber-400/10 text-amber-400"
+                >
+                  Not connected
+                </Badge>
+              )}
             </div>
-            <Button size="sm" className="mt-3" disabled>
-              Coming soon
-            </Button>
+            <a
+              href="/api/outlook/connect"
+              className="mt-3 inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              {outlookAccounts.length > 0
+                ? "Add another Outlook"
+                : "Connect Outlook"}
+            </a>
           </div>
 
           <div className="rounded-lg border p-4">

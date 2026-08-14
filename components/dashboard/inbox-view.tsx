@@ -123,30 +123,41 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
       while (true) {
         batch++;
 
-        const res = await fetch("/api/gmail/sync", { method: "POST" });
-        const data = await res.json();
+        // Run Gmail and Outlook syncs in parallel
+        const [gmailRes, outlookRes] = await Promise.all([
+          fetch("/api/gmail/sync", { method: "POST" }),
+          fetch("/api/outlook/sync", { method: "POST" }),
+        ]);
 
-        if (!res.ok) {
-          setSyncMessage(data.error || "Sync failed.");
+        const [gmailData, outlookData] = await Promise.all([
+          gmailRes.json(),
+          outlookRes.json(),
+        ]);
+
+        if (!gmailRes.ok && !outlookRes.ok) {
+          setSyncMessage(gmailData.error || "Sync failed.");
           break;
         }
 
-        const errors = (data.results as any[]).filter((r: any) => r.error);
-        if (errors.length > 0) {
+        const allResults = [
+          ...(gmailData.results ?? []),
+          ...(outlookData.results ?? []),
+        ] as any[];
+
+        const errors = allResults.filter((r) => r.error);
+        if (errors.length > 0 && errors.length === allResults.length) {
           setSyncMessage(`Error: ${errors[0].error}`);
           break;
         }
 
-        const batchSynced = (data.results as any[]).reduce(
+        const batchSynced = allResults.reduce(
           (sum: number, r: any) => sum + (r.synced ?? 0),
           0,
         );
         totalSynced += batchSynced;
 
-        const isInitialSync = (data.results as any[]).some(
-          (r: any) => r.isInitialSync,
-        );
-        const hasMore = (data.results as any[]).some((r: any) => r.hasMore);
+        const isInitialSync = allResults.some((r) => r.isInitialSync);
+        const hasMore = allResults.some((r) => r.hasMore);
 
         if (hasMore) {
           setSyncMessage(
@@ -157,7 +168,6 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
         }
 
         if (!hasMore) break;
-        // Small pause between batches to avoid rate limits
         await new Promise((r) => setTimeout(r, 1500));
       }
 

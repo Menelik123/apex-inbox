@@ -6,7 +6,7 @@ export const metadata = constructMetadata({
   title: "Apex Inbox — The AI Sales Action Inbox",
   description:
     "Every email gets a verdict. Every verdict gets a next action. Apex Inbox connects to Gmail, sorts your sales conversations into five action queues, and tells you exactly what to do next.",
-  canonicalUrl: "https://apexinbox.io",
+  canonicalUrl: "https://apexinbox.live",
 });
 
 const STRUCTURED_DATA = {
@@ -15,7 +15,7 @@ const STRUCTURED_DATA = {
     {
       "@type": "Organization",
       name: "Apex Digital",
-      url: "https://apexinbox.io",
+      url: "https://apexinbox.live",
       contactPoint: {
         "@type": "ContactPoint",
         email: "support@apexdigi.org",
@@ -363,7 +363,7 @@ export default function HomePage() {
               <div className="h-3 w-3 rounded-full bg-emerald-500/50" />
             </div>
             <div className="mx-auto rounded px-10 py-0.5 text-xs text-[#4d6479]">
-              app.apexinbox.io — Inbox
+              app.apexinbox.live — Inbox
             </div>
           </div>
 

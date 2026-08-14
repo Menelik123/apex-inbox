@@ -30,7 +30,7 @@ export async function generateMetadata({
   return constructMetadata({
     title: `${title} — Apex Inbox`,
     description: description,
-    canonicalUrl: `https://apexinbox.io/${params.slug}`,
+    canonicalUrl: `https://apexinbox.live/${params.slug}`,
   });
 }
 

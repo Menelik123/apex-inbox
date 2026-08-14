@@ -6,7 +6,7 @@ export const metadata = constructMetadata({
   title: "Security — Apex Inbox",
   description:
     "How Apex Inbox handles your Gmail access, email data, OAuth scopes, encryption, and account deletion. Everything you need to know before connecting your inbox.",
-  canonicalUrl: "https://apexinbox.io/security",
+  canonicalUrl: "https://apexinbox.live/security",
 });
 
 const SCOPES = [

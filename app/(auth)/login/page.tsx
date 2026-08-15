@@ -34,20 +34,12 @@ export default function LoginPage() {
             Welcome back
           </h1>
           <p className="text-sm text-muted-foreground">
-            Enter your email to sign in to your account
+            Sign in with your Google account to continue
           </p>
         </div>
         <Suspense>
           <UserAuthForm />
         </Suspense>
-        <p className="px-8 text-center text-sm text-muted-foreground">
-          <Link
-            href="/register"
-            className="hover:text-brand underline underline-offset-4"
-          >
-            Don&apos;t have an account? Sign Up
-          </Link>
-        </p>
       </div>
     </div>
   );

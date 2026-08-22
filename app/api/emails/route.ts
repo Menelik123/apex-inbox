@@ -36,42 +36,119 @@ export async function GET(req: NextRequest) {
     ([, v]) => v === category,
   )?.[0];
 
-  const emails = await prisma.email.findMany({
-    where: {
-      emailAccountId: { in: accountIds },
-      isArchived: false,
-      ...(dbCategory ? { category: dbCategory as any } : {}),
-      ...(q
-        ? {
-            OR: [
-              { fromEmail: { contains: q, mode: "insensitive" } },
-              { fromName: { contains: q, mode: "insensitive" } },
-              { subject: { contains: q, mode: "insensitive" } },
-              { snippet: { contains: q, mode: "insensitive" } },
-              { bodyText: { contains: q, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: { receivedAt: "desc" },
-    take: 100,
-    select: {
-      id: true,
-      messageId: true,
-      fromName: true,
-      fromEmail: true,
-      subject: true,
-      snippet: true,
-      bodyText: true,
-      receivedAt: true,
-      isRead: true,
-      category: true,
-      aiSummary: true,
-      aiAction: true,
-      aiWhy: true,
-      aiConfidence: true,
-    },
-  });
+  const PRIORITY_ORDER = [
+    "HOT_LEAD",
+    "NEEDS_RESPONSE",
+    "CLIENT_FOLLOWUP",
+    "ADMIN",
+    "NOISE",
+  ];
+
+  const baseWhere = {
+    emailAccountId: { in: accountIds },
+    isArchived: false,
+    ...(dbCategory ? { category: dbCategory as any } : {}),
+  };
+
+  let emails;
+  if (q) {
+    // Run two passes: header matches (sender + subject) first, then body matches
+    const [headerMatches, bodyMatches] = await Promise.all([
+      prisma.email.findMany({
+        where: {
+          ...baseWhere,
+          OR: [
+            { fromEmail: { contains: q, mode: "insensitive" } },
+            { fromName: { contains: q, mode: "insensitive" } },
+            { subject: { contains: q, mode: "insensitive" } },
+          ],
+        },
+        orderBy: { receivedAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          messageId: true,
+          fromName: true,
+          fromEmail: true,
+          subject: true,
+          snippet: true,
+          bodyText: true,
+          receivedAt: true,
+          isRead: true,
+          category: true,
+          aiSummary: true,
+          aiAction: true,
+          aiWhy: true,
+          aiConfidence: true,
+        },
+      }),
+      prisma.email.findMany({
+        where: {
+          ...baseWhere,
+          OR: [
+            { snippet: { contains: q, mode: "insensitive" } },
+            { bodyText: { contains: q, mode: "insensitive" } },
+          ],
+        },
+        orderBy: { receivedAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          messageId: true,
+          fromName: true,
+          fromEmail: true,
+          subject: true,
+          snippet: true,
+          bodyText: true,
+          receivedAt: true,
+          isRead: true,
+          category: true,
+          aiSummary: true,
+          aiAction: true,
+          aiWhy: true,
+          aiConfidence: true,
+        },
+      }),
+    ]);
+    // Merge: header matches first, then body-only matches (deduplicated)
+    const seen = new Set(headerMatches.map((e) => e.id));
+    emails = [
+      ...headerMatches,
+      ...bodyMatches.filter((e) => !seen.has(e.id)),
+    ].slice(0, 100);
+  } else {
+    emails = await prisma.email.findMany({
+      where: baseWhere,
+      orderBy: { receivedAt: "desc" },
+      take: 100,
+      select: {
+        id: true,
+        messageId: true,
+        fromName: true,
+        fromEmail: true,
+        subject: true,
+        snippet: true,
+        bodyText: true,
+        receivedAt: true,
+        isRead: true,
+        category: true,
+        aiSummary: true,
+        aiAction: true,
+        aiWhy: true,
+        aiConfidence: true,
+      },
+    });
+  }
+
+  // When showing all emails, sort by priority category first, then date
+  if (!dbCategory && !q) {
+    emails.sort((a, b) => {
+      const aPriority = PRIORITY_ORDER.indexOf(a.category ?? "ADMIN");
+      const bPriority = PRIORITY_ORDER.indexOf(b.category ?? "ADMIN");
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      return b.receivedAt.getTime() - a.receivedAt.getTime();
+    });
+  }
 
   const formatted = emails.map((e) => ({
     id: e.id,

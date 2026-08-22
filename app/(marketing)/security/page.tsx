@@ -1,12 +1,13 @@
 import Link from "next/link";
 
+import { env } from "@/env.mjs";
 import { constructMetadata } from "@/lib/utils";
 
 export const metadata = constructMetadata({
   title: "Security — Apex Inbox",
   description:
     "How Apex Inbox handles your Gmail access, email data, OAuth scopes, encryption, and account deletion. Everything you need to know before connecting your inbox.",
-  canonicalUrl: "https://apexinbox.live/security",
+  canonicalUrl: `${env.NEXT_PUBLIC_APP_URL}/security`,
 });
 
 const SCOPES = [

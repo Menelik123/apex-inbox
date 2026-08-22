@@ -1,12 +1,13 @@
 import Link from "next/link";
 
+import { env } from "@/env.mjs";
 import { constructMetadata } from "@/lib/utils";
 
 export const metadata = constructMetadata({
   title: "Pricing — Apex Inbox",
   description:
     "Simple, honest pricing for the AI Sales Action Inbox. Start free — no credit card required.",
-  canonicalUrl: "https://apexinbox.live/pricing",
+  canonicalUrl: `${env.NEXT_PUBLIC_APP_URL}/pricing`,
 });
 
 const SOLO_FEATURES = [

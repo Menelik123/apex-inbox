@@ -97,6 +97,7 @@ export function SearchCommand({ links }: { links: SidebarNavItem[] }) {
       <CommandDialog
         open={open}
         onOpenChange={setOpen}
+        shouldFilter={false}
         title="Search"
         description="Search emails and navigate"
       >

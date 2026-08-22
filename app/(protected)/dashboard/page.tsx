@@ -13,5 +13,10 @@ export default async function DashboardPage({
   searchParams: { category?: string };
 }) {
   const user = await getCurrentUser();
-  return <InboxView user={user} activeCategory={searchParams.category || "all"} />;
+  return (
+    <>
+      <h1 className="sr-only">Inbox</h1>
+      <InboxView user={user} activeCategory={searchParams.category || "all"} />
+    </>
+  );
 }

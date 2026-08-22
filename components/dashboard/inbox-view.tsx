@@ -66,7 +66,6 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
   const [agentQuery, setAgentQuery] = useState("");
   const [agentAnswer, setAgentAnswer] = useState("");
   const [agentLoading, setAgentLoading] = useState(false);
-  const [comingSoonMsg, setComingSoonMsg] = useState("");
   const [reclassifying, setReclassifying] = useState(false);
   const [reclassifyMsg, setReclassifyMsg] = useState("");
   const [archiving, setArchiving] = useState(false);
@@ -213,7 +212,6 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
     setSelectedEmail(email);
     setAgentAnswer("");
     setShowDraft(false);
-    setComingSoonMsg("");
     setArchiveMsg("");
     setEditingCategory(false);
     setShowFollowUp(false);
@@ -278,14 +276,15 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
           prev.map((e) => (e.id === selectedEmail.id ? updated : e)),
         );
         setEditingCategory(false);
+      } else {
+        setReclassifyMsg("Category update failed. Try again.");
+        setTimeout(() => setReclassifyMsg(""), 4000);
       }
-    } catch {}
+    } catch {
+      setReclassifyMsg("Category update failed. Try again.");
+      setTimeout(() => setReclassifyMsg(""), 4000);
+    }
     setSavingCategory(false);
-  };
-
-  const showComingSoon = (feature: string) => {
-    setComingSoonMsg(`${feature} is coming in the next update.`);
-    setTimeout(() => setComingSoonMsg(""), 3000);
   };
 
   const handleAskAI = async () => {
@@ -420,7 +419,7 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
                     {syncMessage || reclassifyMsg}
                   </span>
                 ) : (
-                  `${emails.length} emails`
+                  `${emails.length} ${emails.length === 1 ? "email" : "emails"}`
                 )}
               </p>
             )}
@@ -623,15 +622,8 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
                   </div>
                 )}
 
-                {(comingSoonMsg || archiveMsg) && (
-                  <p
-                    className={cn(
-                      "mt-2 text-xs",
-                      archiveMsg ? "text-red-400" : "text-amber-400",
-                    )}
-                  >
-                    {archiveMsg || comingSoonMsg}
-                  </p>
+                {archiveMsg && (
+                  <p className="mt-2 text-xs text-red-400">{archiveMsg}</p>
                 )}
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button
@@ -663,16 +655,9 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
                     size="sm"
                     variant="outline"
                     className="h-7 text-xs"
-                    onClick={() => showComingSoon("Create Task")}
-                  >
-                    Create Task
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs"
                     onClick={handleArchive}
                     disabled={archiving}
+                    title="Archives from Apex Inbox only — does not archive in Gmail"
                   >
                     {archiving ? "Archiving..." : "Archive"}
                   </Button>
@@ -711,7 +696,11 @@ export function InboxView({ user, activeCategory }: InboxViewProps) {
                 </div>
               )}
               <div className="flex gap-2">
+                <label htmlFor="ask-ai-input" className="sr-only">
+                  Ask AI about this email
+                </label>
                 <input
+                  id="ask-ai-input"
                   type="text"
                   placeholder="Ask AI about this email..."
                   value={agentQuery}

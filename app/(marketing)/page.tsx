@@ -1,12 +1,13 @@
 import Link from "next/link";
 
+import { env } from "@/env.mjs";
 import { constructMetadata } from "@/lib/utils";
 
 export const metadata = constructMetadata({
   title: "Apex Inbox — The AI Sales Action Inbox",
   description:
     "Every email gets a verdict. Every verdict gets a next action. Apex Inbox connects to Gmail, sorts your sales conversations into five action queues, and tells you exactly what to do next.",
-  canonicalUrl: "https://apexinbox.live",
+  canonicalUrl: env.NEXT_PUBLIC_APP_URL,
 });
 
 const STRUCTURED_DATA = {
@@ -15,7 +16,7 @@ const STRUCTURED_DATA = {
     {
       "@type": "Organization",
       name: "Apex Digital",
-      url: "https://apexinbox.live",
+      url: env.NEXT_PUBLIC_APP_URL,
       contactPoint: {
         "@type": "ContactPoint",
         email: "support@apexdigi.org",
@@ -185,7 +186,7 @@ const CATEGORIES = [
 const FEATURES = [
   {
     title: "AI Email Categorization",
-    body: "Every email is read and sorted into one of five action buckets the moment it lands. Hot leads never hide behind admin noise again.",
+    body: "Every email is read and sorted into one of five action buckets when you sync. Hot leads never hide behind admin noise again.",
   },
   {
     title: "AI Draft Reply",
@@ -201,7 +202,7 @@ const FEATURES = [
   },
   {
     title: "Smart Sync",
-    body: "Connects to your Gmail and syncs new messages in batches. AI classifies each one automatically — no manual sorting required.",
+    body: "Connects to your Gmail and pulls new messages on demand, in batches. AI classifies each one automatically — no manual sorting required.",
   },
   {
     title: "Manual Category Correction",
@@ -213,7 +214,7 @@ const PAIN_POINTS = [
   {
     problem: "A hot lead emailed you on Tuesday.",
     consequence: "You saw it Friday — buried under 40 other messages.",
-    fix: "Apex Inbox surfaces it the moment it arrives and tells you to reply now.",
+    fix: "Sync your inbox and Apex Inbox surfaces it instantly — and tells you to reply now.",
   },
   {
     problem: "You meant to follow up with a prospect last week.",
@@ -644,7 +645,7 @@ export default function HomePage() {
               {
                 step: "02",
                 title: "AI reads and ranks everything",
-                body: "Every email is analyzed by Claude AI — categorized, summarized, and given a suggested next action. You open the app to decisions, not raw mail.",
+                body: "On each sync, every email is analyzed by Claude AI — categorized, summarized, and given a suggested next action. You open the app to decisions, not raw mail.",
               },
               {
                 step: "03",
@@ -680,7 +681,7 @@ export default function HomePage() {
             Five buckets. Total clarity.
           </p>
           <h2 className="mb-4 text-center text-3xl font-bold tracking-tight">
-            Every email gets a verdict the moment it lands.
+            Every email gets a verdict when you sync.
           </h2>
           <p className="mx-auto mb-14 max-w-xl text-center text-[#8da4be]">
             Apex Inbox doesn&apos;t just sort your mail. It tells you what each

@@ -7,6 +7,7 @@ import "@/styles/mdx.css";
 
 import { Metadata } from "next";
 
+import { env } from "@/env.mjs";
 import { constructMetadata, getBlurDataURL } from "@/lib/utils";
 
 export async function generateStaticParams() {
@@ -30,7 +31,7 @@ export async function generateMetadata({
   return constructMetadata({
     title: `${title} — Apex Inbox`,
     description: description,
-    canonicalUrl: `https://apexinbox.live/${params.slug}`,
+    canonicalUrl: `${env.NEXT_PUBLIC_APP_URL}/${params.slug}`,
   });
 }
 

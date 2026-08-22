@@ -266,9 +266,15 @@ export function SettingsSection() {
               Save AI Preferences
             </Button>
             {savedMsg.ai && (
-              <span className="text-xs text-emerald-400">Saved.</span>
+              <span className="text-xs text-emerald-400">
+                Saved to this browser.
+              </span>
             )}
           </div>
+          <p className="text-xs text-muted-foreground/60">
+            Preferences are stored in this browser. Clear your browser data to
+            reset them.
+          </p>
         </div>
       </SectionColumns>
 
@@ -316,9 +322,15 @@ export function SettingsSection() {
               Save Digest Settings
             </Button>
             {savedMsg.digest && (
-              <span className="text-xs text-emerald-400">Saved.</span>
+              <span className="text-xs text-emerald-400">
+                Saved to this browser.
+              </span>
             )}
           </div>
+          <p className="text-xs text-muted-foreground/60">
+            These settings are stored in this browser. Digest delivery is not
+            yet active.
+          </p>
         </div>
       </SectionColumns>
 
@@ -373,9 +385,15 @@ export function SettingsSection() {
               Save Follow-Up Rules
             </Button>
             {savedMsg.followup && (
-              <span className="text-xs text-emerald-400">Saved.</span>
+              <span className="text-xs text-emerald-400">
+                Saved to this browser.
+              </span>
             )}
           </div>
+          <p className="text-xs text-muted-foreground/60">
+            Follow-up rules are stored in this browser and used as defaults when
+            scheduling.
+          </p>
         </div>
       </SectionColumns>
     </>

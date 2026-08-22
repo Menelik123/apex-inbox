@@ -31,12 +31,14 @@ Command.displayName = CommandPrimitive.displayName;
 interface CommandDialogProps extends DialogProps {
   title?: string;
   description?: string;
+  shouldFilter?: boolean;
 }
 
 const CommandDialog = ({
   children,
   title = "Command Menu",
   description = "Search and navigate",
+  shouldFilter,
   ...props
 }: CommandDialogProps) => {
   return (
@@ -44,7 +46,10 @@ const CommandDialog = ({
       <DialogContent className="overflow-hidden p-0 shadow-2xl">
         <DialogTitle className="sr-only">{title}</DialogTitle>
         <DialogDescription className="sr-only">{description}</DialogDescription>
-        <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:size-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:size-5">
+        <Command
+          shouldFilter={shouldFilter}
+          className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:size-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:size-5"
+        >
           {children}
         </Command>
       </DialogContent>

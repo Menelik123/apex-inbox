@@ -95,6 +95,7 @@ export function FollowUpModal({
           <input
             type="datetime-local"
             value={dueAt}
+            min={new Date().toISOString().slice(0, 16)}
             onChange={(e) => setDueAt(e.target.value)}
             className="rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary"
           />
